@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reverse-sso
+spec:
+  selector:
+    matchLabels:
+      app: reverse-sso
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: reverse-sso
+    spec:
+      containers:
+        - name: reverse-sso
+          image: quay.io/ooichman/reverse-sso:latest
+          imagePullPolicy: Always
+          env:
+          - name: RH_SSO_URL
+            value: 
+          - name: CLIENT_ID
+            value: 
+          - name: CLIENT_SECRET
+            value: '
+          - name: REVERSE_SSO_ROUTE
+            value: 
+          - name: DST_SERVICE_NAME
+            value:
+          - name: RH_SSO_REALM
+            value:
+          ports:
+            - containerPort: 8080

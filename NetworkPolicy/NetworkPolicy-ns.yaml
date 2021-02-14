@@ -1,9 +1,11 @@
 kind: NetworkPolicy
 apiVersion: networking.k8s.io/v1
 metadata:
-  name: allow-same-namespace
+  name: allow-namespace
 spec:
   podSelector:
   ingress:
-  - from:
-    - podSelector: {}
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            project: bookinfo-app

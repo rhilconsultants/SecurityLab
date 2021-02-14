@@ -30,18 +30,18 @@ echo "
         OIDCClientID $CLIENT_ID
         OIDCClientSecret $CLIENT_SECRET
         OIDCRedirectURI https://${REVERSE_SSO_ROUTE}/oauth2callback
-		OIDCCryptoPassphrase openshift
+	OIDCCryptoPassphrase openshift
 
-		<Directory "/opt/app-root/">
-	   		AllowOverride All
-		</Directory>
+	<Directory "/opt/app-root/">
+   		AllowOverride All
+	</Directory>
 
         <Location />
 	        AuthType openid-connect
-    	    Require valid-user
-			ProxyPreserveHost on
-			ProxyPass	http://${DST_SERVICE_NAME}:${DST_SERVICE_PORT}/
-			ProxyPassReverse	http://${DST_SERVICE_NAME}:${DST_SERVICE_PORT}/
+ 	       	Require valid-user
+		ProxyPreserveHost on
+		ProxyPass	http://${DST_SERVICE_NAME}:${DST_SERVICE_PORT}/
+		ProxyPassReverse	http://${DST_SERVICE_NAME}:${DST_SERVICE_PORT}/
         </Location>
 </VirtualHost>
 " > /tmp/reverse.conf

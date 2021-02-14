@@ -11,6 +11,7 @@ RUN echo "PidFile /tmp/http.pid" >> /etc/httpd/conf/httpd.conf
 RUN sed -i "s/Listen\ 80/Listen\ 8080/g"  /etc/httpd/conf/httpd.conf
 RUN sed -i "s/\"logs\/error_log\"/\/dev\/stderr/g" /etc/httpd/conf/httpd.conf
 RUN sed -i "s/CustomLog \"logs\/access_log\"/CustomLog \/dev\/stdout/g" /etc/httpd/conf/httpd.conf
+
 RUN echo 'IncludeOptional /opt/app-root/*.conf' >> /etc/httpd/conf/httpd.conf
 RUN mkdir /opt/app-root/ && chown apache:apache /opt/app-root/ && chmod 777 /opt/app-root/
 

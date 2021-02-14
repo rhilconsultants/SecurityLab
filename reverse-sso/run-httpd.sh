@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if [ -z ${RH_SSO_URL} ]; then
-	echo "Environment variable RH_SSO_URL undefined"
+if [ -z ${RH_SSO_FQDN} ]; then
+	echo "Environment variable RH_SSO_FQDN undefined"
 	exit 1
 elif [[ -z $CLIENT_ID ]]; then
 	echo "Environment variable CLIENT_ID undefined"
@@ -18,12 +18,15 @@ elif [[ -z ${DST_SERVICE_NAME} ]]; then
 elif [[ -z $RH_SSO_REALM ]]; then
 	echo "Environment variable RH_SSO_REALM undefined"
 	exit 1
+elif [[ -z ${DST_SERVICE_PORT} ]]; then
+	echo "Environment variable DST_SERVICE_PORT undefined"
+	exit 1
 fi
 
 
 echo "
 <VirtualHost *:8080>
-        OIDCProviderMetadataURL ${RH_SSO_URL}/auth/realms/${RH_SSO_REALM}/.well-known/openid-configuration
+        OIDCProviderMetadataURL https://${RH_SSO_FQDN}/auth/realms/${RH_SSO_REALM}/.well-known/openid-configuration
         OIDCClientID $CLIENT_ID
         OIDCClientSecret $CLIENT_SECRET
         OIDCRedirectURI https://${REVERSE_SSO_ROUTE}/oauth2callback
@@ -37,8 +40,8 @@ echo "
 	        AuthType openid-connect
     	    Require valid-user
 			ProxyPreserveHost on
-			ProxyPass	http://${DST_SERVICE_NAME}:9080/
-			ProxyPassReverse	http://${DST_SERVICE_NAME}:9080/
+			ProxyPass	http://${DST_SERVICE_NAME}:${DST_SERVICE_PORT}/
+			ProxyPassReverse	http://${DST_SERVICE_NAME}:${DST_SERVICE_PORT}/
         </Location>
 </VirtualHost>
 " > /tmp/reverse.conf

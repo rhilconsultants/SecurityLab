@@ -17,17 +17,19 @@ spec:
           image: quay.io/ooichman/reverse-sso:latest
           imagePullPolicy: Always
           env:
-          - name: RH_SSO_URL
+          - name: RH_SSO_FQDN
             value: 
           - name: CLIENT_ID
             value: 
           - name: CLIENT_SECRET
-            value: '
+            value: 
           - name: REVERSE_SSO_ROUTE
             value: 
           - name: DST_SERVICE_NAME
             value:
           - name: RH_SSO_REALM
+            value:
+          - name: DST_SERVICE_NAME
             value:
           ports:
             - containerPort: 8080

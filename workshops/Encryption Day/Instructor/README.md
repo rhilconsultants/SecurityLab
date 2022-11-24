@@ -17,18 +17,6 @@ dnf install -y jq openssl podman p7zip httpd-tools curl wget rlwrap nmap telnet 
  openldap-clients tcpdump wireshark-cli buildah xorg-x11-xauth tmux net-tools nfs-utils skopeo make 
 ```
 
-To enable Ansible with Kubernetes
-```bash
-# dnf install -y http://mirror.centos.org/centos/8-stream/AppStream/x86_64/os/Packages/ansible-core-2.12.2-3.el8.x86_64.rpm \
-  http://mirror.centos.org/centos/8-stream/AppStream/x86_64/os/Packages/python38-resolvelib-0.5.4-5.el8.noarch.rpm
-# dnf intall -y ansible.noarch
-```
-
-Install the Kubernetes module :
-```bash
-# pip3 install kubernetes==12.0.1
-```
-
 ### Users Management
 
 Create a user for the Manager
@@ -81,6 +69,16 @@ oc adm policy add-role-to-user admin user${num} -n user${num}-project
 done
 ```
 
+Update the /etc/hosts file :
+```bash
+# IPADDR=$(nslookup -q=a nana.apps.cluster-${UUID}.${UUID}.${SANDBOX} | \
+  grep Address | \
+  grep -v '#' | \
+  awk '{print $2}' | head -1)
+# for num in {1..20};do
+echo "${IPADDR}     tls-test-user${num}.example.local" >> /etc/hosts
+done
+```
 Extact the CA from OpenShift to a file :
 
 ```bash

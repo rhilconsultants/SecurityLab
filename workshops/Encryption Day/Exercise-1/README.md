@@ -77,7 +77,8 @@ first let's generate the key
 $ openssl genrsa -out Keys/tls-test.key 4096
 ```
 
-**QUESTION**
+**QUESTION**  
+
 Why do we need a new key ?  
 
 Now we will generate the certificate request using our newly created key!  
@@ -117,7 +118,8 @@ We can fix that later but for now let's work with a shorter name :
 ```bash
 $ echo "tls-test-${USER}.example.local"
 ```
-**NOTE**
+**NOTE**  
+
 Don't worry it is already in our /etc/hosts file 
 
 Let's run the CSR command again :
@@ -152,7 +154,8 @@ Now Let's look at our newly created CSR
 ```bash
 $ openssl req -in CSR/tls-test.csr -noout -text 
 ```
-**NOTE**
+**NOTE**  
+
 thre is no time piriod mentioning in the certificate, can you tell why ?
 
 ### signing the CSR
@@ -180,7 +183,8 @@ Now that we know that it is valid , we can go over it for all the details :
 ```bash
 $ openssl x509 -in Certs/tls-test.crt -noout -text | less
 ```
-**Hint**
+**Hint**  
+
 Try to find our CN (Common name)
 
 ## noninteractive
@@ -220,7 +224,8 @@ subjectKeyIdentifier=hash
 authorityKeyIdentifier=keyid,issuer 
 EOF
 ```
-**NOTE**
+**NOTE**  
+
 the answers defines a x509 extentions which we will touch late on , for now we are going to just place it here.
 
 ### Certificate Answer file 
@@ -274,5 +279,14 @@ $ openssl x509 -req -in CSR/tls-test.csr -CA CA/ca.crt -CAkey Keys/ca.key \
   -CAcreateserial -out Certs/tls-test.crt -days 730 -extensions 'req_ext' \
   -extfile <(cat Afile/tls_answer.txt)
 ```
+
+For the last step go ahaed and verify your certificate 
+```bash
+$ openssl verify -CAfile CA/ca.crt Certs/tls-test.crt
+```
+**Question**  
+
+Why do we need to verify the certificate ?
+
 
 You have completed your first Exercise!

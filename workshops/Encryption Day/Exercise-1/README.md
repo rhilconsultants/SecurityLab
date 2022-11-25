@@ -288,5 +288,36 @@ $ openssl verify -CAfile CA/ca.crt Certs/tls-test.crt
 
 Why do we need to verify the certificate ?
 
+Let's test our certificate by deploying the monkey-app and attaching the certificate to it's route
 
+create the monkey-app deployment 
+```bash
+$ oc create deployment monkey-app --image=quay.io/two.oes/monkey-app:latest --port=8080 --replicas=1 -n ${USER}-project
+```
+
+and the service 
+```bash
+$ oc create service clusterip monkey-app --tcp=8080 -n ${USER}-project
+```
+and for the Route:
+```bash
+$ oc create route edge --service=monkey-app \
+  --cert=Certs/tls-test.crt --key=Keys/tls-test.key \
+  --ca-cert=CA/ca.crt --insecure-policy=Redirect \
+  --port=8080 \
+  --hostname=tls-test-${USER}.example.local
+```
+
+No run a test with curl which points to the url :
+```bash
+$ curl -H "Content-Type: application/json" --cacert CA/ca.crt https://tls-test-${USER}.example.local/api/?says=banana
+```
+
+The output should be :
+```bash
+{
+  "result": "Success",
+  "message": "Monkey says: banana"
+}
+```
 You have completed your first Exercise!

@@ -128,6 +128,10 @@ Now that our certificate has been generated we can go ahead and extract it. sens
 $ oc get csr ${SHORT_NAME} -o jsonpath='{.status.certificate}' | base64 -d > Certs/ocp-ca.crt
 ```
 
+use cat to view the certificate :
+```bash
+$ cat Certs/ocp-ca.crt
+```
 The output should look as such :
 ```
 -----BEGIN CERTIFICATE-----

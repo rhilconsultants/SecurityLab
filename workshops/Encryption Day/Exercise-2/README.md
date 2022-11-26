@@ -175,7 +175,9 @@ $ openssl req -in CSR/client.csr -noout -text | less
 
 Use our CA to sign the client certificate as well.
 ```bash
-$ openssl x509 -req -in CSR/client.csr -CA CA/ca.crt -CAkey Keys/ca.key -CAcreateserial -out Certs/client.crt -days 730 -extensions 'req_ext' -extfile <(cat Afile/client_csr.txt)
+$ openssl x509 -req -in CSR/client.csr -CA CA/ca.crt \
+  -CAkey Keys/ca.key -CAcreateserial -out Certs/client.crt \
+  -days 730 -extensions 'req_ext' -extfile <(cat Afile/client_csr.txt)
 ```
 
 Now that we have everything in place we can run a few test.
@@ -452,6 +454,11 @@ for :
 - ALLOWED_USER
 - <client certificate CN>
 
+Finally let's apply the deployment :
+```bash
+$ oc apply -f Container/deployment.yaml
+```
+
 ### Deploy the Container service and route
 
 create the service
@@ -475,7 +482,7 @@ $ export ROUTE_MTLS=$(oc get route httpd-mtls -o jsonpath='{.spec.host}')
 
 First run the curl without the client certificate
 ```bash
-$curl --cacert CA/ca.crt https://${ROUTE_MTLS}
+$ curl --cacert CA/ca.crt https://${ROUTE_MTLS}
 curl: (56) OpenSSL SSL_read: error:1409445C:SSL routines:ssl3_read_bytes:tlsv13 alert certificate required, errno 0
 ```
 
@@ -491,11 +498,7 @@ If you see your index.html file that you are good to go !!!
 ## Testing our Certificate.
 As noted before We can use openssl as our TLS client and retrieve the public certificate from the server with s_client option:
 
-Let's set the route :
-```bash
-$ ROUTE=$(oc get route httpd-mtls -o jsonpath='{.spec.host}')
-```
 and run the following command :
 ```bash
-$  echo quit | openssl s_client -showcerts -servername ${ROUTE} -connect ${ROUTE}:443
+$  echo quit | openssl s_client -showcerts -servername ${ROUTE_MTLS} -connect ${ROUTE_MTLS}:443
 ```

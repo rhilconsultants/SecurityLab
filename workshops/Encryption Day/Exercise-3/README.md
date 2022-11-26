@@ -56,7 +56,7 @@ $ openssl req -new -key Keys/ocp-ca.key -out CSR/ocp-ca.csr -config <( cat Afile
 
 We can even create the CSR without the answerfile in a one linner :
 ```bash
-$ openssl req -new -key Keys/ocp-ca.key -out CSR/ocp-ca.csr -subj "/CN=${SHORT_NAME}/O=BNHP/C=IL/ST=Center/L=TLV"  -addext "subjectAltName = DNS:${SHORT_NAME},DNS:${SHORT_NAME}.${DOMAIN}" -addext "keyUsage=digitalSignature" -addext "basicConstraints=CA:FALSE"
+$ openssl req -new -key Keys/ocp-ca.key -out CSR/ocp-ca.csr -subj "/CN=${SHORT_NAME}/O=BNHP/C=IL/ST=Center/L=TLV"  -addext "subjectAltName = DNS:${SHORT_NAME},DNS:${SHORT_NAME}.${DOMAIN}" -addext "keyUsage=digitalSignature" -addext "basicConstraints=CA:FALSE" 
 ```
 
 ## Signing the CSR
@@ -82,7 +82,7 @@ spec:
   signerName: kubernetes.io/kube-apiserver-client
   expirationSeconds: 7776000 # three months
   usages:
-  - server auth
+  - client auth
 EOF
 ```
 
@@ -142,9 +142,9 @@ If you are getting the same results we are good to go.
 For the last part we need to extract our CA certificate which OpenShift had used to sign the certificate. On Openshift there is a simple config map which contains all of the necessary CAs :
 
 **NOTE**
-the following command should be run by the cluster admin (Ask the instractur)
+Copy the Openshift CA from the shared directory :
 ```bash
-$ oc get secret csr-signer -n openshift-kube-controller-manager-operator -o template='{{ index .data "tls.crt"}}' | base64 -d > CA/ocp-ca.crt
+$ cp /usr/share/ca-certs/ocp-ca.crt CA/ocp-ca.crt
 ```
 
 Now we have everything we need in place and we go ahead and use the certificate.
@@ -162,6 +162,36 @@ $ oc create route edge monkey-app --service=monkey-app \
   --port=8080
 ```
 
+Let's look at the route ...
+```bash
+$ oc get route monkey-app
+
+```
+
+This looks like something is not right , Let's look at the certificate and figure out why.
+```bash
+$ openssl x509 -in Certs/ocp-ca.crt -text -noout
+```
+**HINT**  
+It looks like the vaules of SSLv3 do not line up with the certificate needed for the route  
+Can you guess which value is the problametic one?
+
+## Restoring the Old certificate
+
+Delete the new one
+```bash
+$ oc delete route monkey-app
+```
+
+Now let's recreate the old one
+
+```bash
+$ oc create route edge monkey-app --service=monkey-app \
+  --cert=Certs/wildcard.crt --key=Keys/tls-test.key \
+  --ca-cert=CA/ca.crt --insecure-policy=Redirect \
+  --port=8080 
+```
+
 ## Testing our Certificate.
 
 set a varible with your route
@@ -171,7 +201,7 @@ $ export ROUTE=$(oc get route monkey-app -o jsonpath='{.spec.host}')
 
 Now run a test with curl which points to the url :
 ```bash
-$ curl -vvv -H "Content-Type: application/json" https://${ROUTE}/api/?says=banana
+$ curl -vvv --cacert CA/ca.crt -H "Content-Type: application/json" https://${ROUTE}/api/?says=banana
 ```
 
 The output should be :

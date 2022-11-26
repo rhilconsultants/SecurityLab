@@ -69,6 +69,65 @@ oc adm policy add-role-to-user admin user${num} -n user${num}-project
 done
 ```
 
+Create a new cluster rule :
+```bash
+$ cat > csr-clusterrole.yaml << EOF
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: csr-creator
+rules:
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - certificatesigningrequests
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+  - update
+  - patch
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - certificatesigningrequests/approval
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+  - update
+  - patch
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - certificatesigningrequests/status
+  verbs:
+  - update
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - signers
+  resourceNames:
+  - kubernetes.io/kube-apiserver-client
+  verbs:
+  - sign
+  - approve
+EOF
+```
+and Approve it :
+```bash
+$ oc apply -f csr-clusterrole.yaml
+```
+
+update all the users:
+```bash
+# for num in {1..20};do
+oc adm policy add-cluster-role-to-user csr-creator user${num}
+done
+```
+
 Update the /etc/hosts file :
 ```bash
 # IPADDR=$(nslookup -q=a nana.apps.cluster-${UUID}.${UUID}.${SANDBOX} | \
@@ -79,12 +138,17 @@ Update the /etc/hosts file :
 echo "${IPADDR}     tls-test-user${num}.example.local" >> /etc/hosts
 done
 ```
-Extact the CA from OpenShift to a file :
+Extact the CA from OpenShift to files :
 
 ```bash
 # oc -n openshift-authentication  \
 rsh `oc get pods -n openshift-authentication -o name | head -1 `  cat /run/secrets/kubernetes.io/serviceaccount/ca.crt > \
 /etc/pki/ca-trust/source/anchors/opentls.crt
+
+# mkdir /usr/share/ca-certs/
+
+# oc get secret csr-signer -n openshift-kube-controller-manager-operator -o template='{{ index .data "tls.crt"}}' | base64 -d > /usr/share/ca-certs/ocp-ca.crt
+
 # update-ca-trust extract
 ```
 

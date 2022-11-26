@@ -494,6 +494,20 @@ $ curl --cacert CA/ca.crt --cert Certs/client.crt --key Keys/client.key https://
 ```
 
 If you see your index.html file that you are good to go !!!
+```
+<html>
+<head>
+<title> this is a test </title>
+<body>
+<p> this is the ${USER} page </p>
+</body>
+</html>
+```
+If you want to go in to details about the MTLS negotiation you can add "vvv" arguments to the command :
+```bash
+$ curl -vvv --cacert CA/ca.crt -H "Content-Type: application/json" https://${ROUTE}/api/?says=banana
+```
+
 
 ## Testing our Certificate.
 As noted before We can use openssl as our TLS client and retrieve the public certificate from the server with s_client option:

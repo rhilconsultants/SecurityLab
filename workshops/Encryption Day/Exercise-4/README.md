@@ -215,7 +215,14 @@ $ oc describe route monkey-app
 **HINT**
 You can make sure the cert comes from the key with the following command :
 ```
+$ openssl x509 -noout -modulus -in cert2.crt | openssl md5
+$ openssl rsa -noout -modulus -in cert2.key | openssl md5
 ```
+
+If the certificate came from the key it should match  
+
+**Open Task**
+Fix the certificate for the Monkey-app
 
 ## Generate Kubeconfig
 

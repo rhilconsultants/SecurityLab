@@ -112,7 +112,25 @@ $ curl -H "Content-Type: application/json" --cacert CA/ca.crt https://${ROUTE}/a
 
 Great Job So far !!!
 
+### Testing with openssl
+If we want to see the server certificate (and CA in some cases) we can use openssl as a client.  
+Run the following command :
+
+```bash
+$  echo quit | openssl s_client -showcerts -servername ${ROUTE} -connect ${ROUTE}:443
+```
+
+As you can see we have obtain (In clear text) both the Sever and the CA certificates.
+
 ## Client Certificate (For MTLS)
+
+### MTLS 
+
+Mutual TLS, or mTLS for short, is a method for mutual authentication. mTLS ensures that the parties at each end of a network connection are who they claim to be by verifying that they both have the correct private key. The information within their respective TLS certificates provides additional verification.
+
+mTLS is often used in a Zero Trust security framework* to verify users, devices, and servers within an organization. It can also help keep APIs secure.
+
+- Zero Trust means that no user, device, or network traffic is trusted by default, an approach that helps eliminate many security vulnerabilities.
 
 ### Client CSR
 
@@ -471,7 +489,7 @@ $ curl --cacert CA/ca.crt --cert Certs/client.crt --key Keys/client.key https://
 If you see your index.html file that you are good to go !!!
 
 ## Testing our Certificate.
-We can use openssl as our TLS client and retrieve the public certificate from the server with s_client option:
+As noted before We can use openssl as our TLS client and retrieve the public certificate from the server with s_client option:
 
 Let's set the route :
 ```bash

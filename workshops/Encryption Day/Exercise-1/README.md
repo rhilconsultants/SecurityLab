@@ -7,8 +7,9 @@ to sign the request.
 ## First Step
 For the first step we will create a directory to store all the certificate files we are going to use.
 ```bash
-$ mkdir TLS
+$ mkdir ~/TLS
 $ export TLS_BASE="$HOME/TLS"
+$ echo 'export TLS_BASE="$HOME/TLS"' >> ~/.bashrc
 $ mkdir ${TLS_BASE}/CA ${TLS_BASE}/Certs ${TLS_BASE}/Keys ${TLS_BASE}/CSR
 ```
 ## Interactive
@@ -193,7 +194,7 @@ Everything we have done so far can be done by using an answer file in order to a
 
 First create a directory for the answer files
 ```bash
-$ mkdir $TLS_BASE/AFile
+$ mkdir $TLS_BASE/Afile
 ```
 
 ### the Answer file
@@ -257,7 +258,7 @@ CN = ${CERT_CN}
 [ req_ext ]
 basicConstraints=CA:FALSE
 subjectKeyIdentifier=hash
-keyUsage=serverAuth
+extendedKeyUsage=serverAuth
 EOF
 ```
 

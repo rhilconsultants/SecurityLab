@@ -20,7 +20,7 @@ List public keys you have stored (yours and other people's keys)
 $ gpg --list-keys
 ```
 
-# List private keys (generally only your own)
+### List private keys (generally only your own)
 ```bash
 $ gpg --list-secret-keys
 ```

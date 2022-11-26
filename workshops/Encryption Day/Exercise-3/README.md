@@ -169,7 +169,6 @@ $ oc create route edge monkey-app --service=monkey-app \
 Let's look at the route ...
 ```bash
 $ oc get route monkey-app
-
 ```
 
 This looks like something is not right , Let's look at the certificate and figure out why.
@@ -205,7 +204,7 @@ $ export ROUTE=$(oc get route monkey-app -o jsonpath='{.spec.host}')
 
 Now run a test with curl which points to the url :
 ```bash
-$ curl -vvv --cacert CA/ca.crt -H "Content-Type: application/json" https://${ROUTE}/api/?says=banana
+$ curl --cacert CA/ca.crt -H "Content-Type: application/json" https://${ROUTE}/api/?says=banana
 ```
 
 The output should be :
@@ -214,6 +213,11 @@ The output should be :
   "result": "Success",
   "message": "Monkey says: banana"
 }
+```
+
+If you want to go in to details about the MTLS negotiation you can add "vvv" arguments to the command :
+```bash
+$ curl -vvv --cacert CA/ca.crt -H "Content-Type: application/json" https://${ROUTE}/api/?says=banana
 ```
 
 Can you tell which certificate is being used and why ?  

@@ -40,7 +40,15 @@ Once you have logged in to the Bastion server you can connect to the cluster :
 ```bash
 $ export UUID="" # ask the Instructor
 $ export SANDBOX="" # ask the Instructor
+```
+
+Make sure we save it in our bashrc file
+```bash
 $ echo 'export UUID="< the env UUID >"' >> ~/.bashrc
 $ echo echo 'export SANDBOX="< the ENV SANDBOX >"' >> ~/.bashrc
+```
+
+Now login
+```bash
 $ oc login --username=${USER} --password='r3dh4t1!' --server=api.cluster-${UUID}.${UUID}.${SANDBOX}:6443
 ```

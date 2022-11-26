@@ -145,10 +145,13 @@ Extact the CA from OpenShift to files :
 rsh `oc get pods -n openshift-authentication -o name | head -1 `  cat /run/secrets/kubernetes.io/serviceaccount/ca.crt > \
 /etc/pki/ca-trust/source/anchors/opentls.crt
 
+# update-ca-trust extract
+```
+
+Export the OpenShift CA signer 
+```bash
 # mkdir /usr/share/ca-certs/
 
 # oc get secret csr-signer -n openshift-kube-controller-manager-operator -o template='{{ index .data "tls.crt"}}' | base64 -d > /usr/share/ca-certs/ocp-ca.crt
-
-# update-ca-trust extract
 ```
 

@@ -12,6 +12,8 @@ In this workshop we will Learn how to create an use SSL certificates.
   2. SSLv3 extended values [here](Exercise-2/README.md)
   3. Using OpenShift as a CA server for our service application [here](Exercise-3/README.md)
   4. Troubleshooting TLS/SSL certificates [here](Exercise-4/README.md)
+  5. Working with GPG Keys [here](Exercise-5/README.md)
+
 
 ## Instructor 
 

@@ -1,8 +1,8 @@
-# SSL v3 Externtions
+# SSLv3 Extensions
 
-In This exercise we will use the SSLv3 extentions to create an MTLS Certificate.
+In This exercise we will use the SSLv3 extensions to create an MTLS Certificate.
 
-In Order to create MTLS we will need 2 certificates , one for the Server (which we have created in our previus exercise) and one for the client which we will create now
+In Order to create MTLS we will need 2 certificates , one for the Server (which we have created in our previews exercise) and one for the client which we will create now
 
 If you not there , switch to our base directory 
 ```bash
@@ -11,7 +11,7 @@ $ cd $TLS_BASE/
 
 ## DNS Alter Name
 
-From the previus exercise we create a TLS certificte to different route then we are getting from the wildcard due to FQDN bigger then 64 bits.
+From the previous exercise we create a TLS certificate to different route then we are getting from the wildcard due to FQDN bigger then 64 bits.
 with DNS alter name we don't have that problem so we will create a new certificate with the full FQDN of the wildcard (the default)
 
 First let's delete the old route
@@ -110,13 +110,13 @@ $ curl -H "Content-Type: application/json" --cacert CA/ca.crt https://${ROUTE}/a
 }
 ```
 
-Great Job So far
+Great Job So far !!!
 
 ## Client Certificate (For MTLS)
 
 ### Client CSR
 
-We are going create the client certificate request using the SSLv3 extention option and we are going to create a new answer file for the client 
+We are going create the client certificate request using the SSLv3 extension option and we are going to create a new answer file for the client 
 
 Create the Answer file with the following command :
 ```bash
@@ -164,7 +164,7 @@ Now that we have everything in place we can run a few test.
 
 ## On OpenShift
 
-In order to test our new configraion we will setup an httpd Container , instruct in to use TLS and create an MTLS configuration to check
+In order to test our new configuration we will setup an httpd Container , instruct in to use TLS and create an MTLS configuration to check
 the CN of the client certificate :
 
 ### Create the Container
@@ -174,7 +174,7 @@ Create a new directory :
 $ mkdir $TLS_BASE/Container && cd $TLS_BASE/Container
 ```
 
-create a file called ssl.conf with the follwoing content :
+create a file called ssl.conf with the following content :
 ```bash
 $ cat > ssl.conf << EOF
 Listen 443 https
@@ -301,7 +301,7 @@ $ podman tag httpd-mtls ${REGISTRY}/$USER-project/httpd-mtls
 $ podman push ${REGISTRY}/$USER-project/httpd-mtls
 ```
 
-Grep the the internal registry referance from the imagestream:
+Grep the the internal registry reference from the imagestream:
 ```bash
 $ export IMAGE_REF=$(oc get imagestream httpd-mtls -o jsonpath='{.status.dockerImageRepository}')
 ```
@@ -312,7 +312,7 @@ $ cd $TLS_BASE
 $ oc create cm ca-cert --from-file=ca.crt=CA/ca.crt 
 ```
 
-And generate a new certificate for our httpd route (this time the route will be passthrough)
+And generate a new certificate for our httpd route (this time the route will be pass-through)
 
 ```bash
 $ export DOMAIN="apps.cluster-${UUID}.${UUID}.${SANDBOX}"
@@ -341,7 +341,7 @@ CN = ${SHORT_NAME}
 
 [ req_ext ]
 nsCertType = server
-nsComment="The wildcard certificate for monkey-app"
+nsComment="The wildcard certificate for MTLS"
 subjectAltName = @alt_names
 keyUsage=digitalSignature
 extendedKeyUsage=serverAuth
@@ -461,6 +461,8 @@ $curl --cacert CA/ca.crt https://${ROUTE_MTLS}
 curl: (56) OpenSSL SSL_read: error:1409445C:SSL routines:ssl3_read_bytes:tlsv13 alert certificate required, errno 0
 ```
 
+This error message is actually Good for us as it indicates that the client needs a certificate to identify itself
+
 Now Let's run it with the client certificate 
 ```bash
 $ curl --cacert CA/ca.crt --cert Certs/client.crt --key Keys/client.key https://${ROUTE_MTLS}
@@ -468,3 +470,14 @@ $ curl --cacert CA/ca.crt --cert Certs/client.crt --key Keys/client.key https://
 
 If you see your index.html file that you are good to go !!!
 
+## Testing our Certificate.
+We can use openssl as our TLS client and retrieve the public certificate from the server with s_client option:
+
+Let's set the route :
+```bash
+$ ROUTE=$(oc get route httpd-mtls -o jsonpath='{.spec.host}')
+```
+and run the following command :
+```bash
+$  echo quit | openssl s_client -showcerts -servername ${ROUTE} -connect ${ROUTE}:443
+```

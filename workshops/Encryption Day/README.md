@@ -9,7 +9,7 @@ In this workshop we will Learn how to create an use SSL certificates.
 ## Table of Content:
 
   1. Creating a CA key and Certificate with a simple SSL certificate [here](Exercise-1/README.md)
-  2. SSLv3 extended vaules [here](Exercise-2/README.md)
+  2. SSLv3 extended values [here](Exercise-2/README.md)
   3. Using OpenShift as a CA server for our service application [here](Exercise-3/README.md)
   4. Troubleshooting TLS/SSL certificates [here](Exercise-4/README.md)
 

@@ -1,8 +1,8 @@
 # Generating end to end SSL certificates
 
-In thie exercise we will Begin by generating the CA key and certificates files in an *old fasion" way and use those 2  
+In this exercise we will Begin by generating the CA key and certificates files in an *old fashion" way and use those 2  
 through the day.
-In the next section we will create a certificate key followed by a certificste request. Next we will use our newly created CA  
+In the next section we will create a certificate key followed by a certificate request. Next we will use our newly created CA  
 to sign the request.  
 ## First Step
 For the first step we will create a directory to store all the certificate files we are going to use.
@@ -53,7 +53,7 @@ Email Address []: <your username>@localhost
 
 Now we have a fully function CA in the certificate if valid for 730 ( 2 Years )
 
-The ca.key is our "private" key and should not go anywhere (we can protect it with gpg encryption) and the ca.crt is our public file which we can use to verify the certificte
+The ca.key is our "private" key and should not go anywhere (we can protect it with gpg encryption) and the ca.crt is our public file which we can use to verify the certificate
 
 Let's go and have a look at our certificate :
 ```bash
@@ -69,7 +69,7 @@ $ openssl x509 -in CA/ca.crt -noout -text | less
 
 To generate a certificate for the Server (of the client) we need to first create a private key for the server and then we will need a certificate request which the CA will generate the certificate based on that request 
 
-Swith to the base directory
+Switch to the base directory
 
 first let's generate the key
 
@@ -156,11 +156,11 @@ $ openssl req -in CSR/tls-test.csr -noout -text
 ```
 **NOTE**  
 
-thre is no time piriod mentioning in the certificate, can you tell why ?
+three is no time period mentioning in the certificate, can you tell why ?
 
 ### signing the CSR
 
-The following command is fairly simple , we are going to use our CA to sign the CSR and generate a certifcate from it :
+The following command is fairly simple , we are going to use our CA to sign the CSR and generate a certificate from it :
 ```bash
 $ openssl x509 -req -in CSR/tls-test.csr -CA CA/ca.crt -CAkey Keys/ca.key -CAcreateserial -out Certs/tls-test.crt -days 730
 ```
@@ -173,7 +173,7 @@ Getting CA Private Key
 ```
 
 Congratulations !!!  
-You have justed created your first certificate 
+You have just created your first certificate 
 
 Let's have a look at our new certificate :
 ```bash
@@ -187,7 +187,7 @@ $ openssl x509 -in Certs/tls-test.crt -noout -text | less
 
 Try to find our CN (Common name)
 
-## noninteractive
+## non-interactive
 
 Everything we have done so far can be done by using an answer file in order to automate the process if we need to.
 
@@ -197,7 +197,7 @@ $ mkdir $TLS_BASE/AFile
 ```
 
 ### the Answer file
-an OpenSSL answer file can provide answers to the generating of the CA , certificate request and the certificate so all the command will run in a noninteractive mode 
+an OpenSSL answer file can provide answers to the generating of the CA , certificate request and the certificate so all the command will run in a non-interactive mode 
 
 ### the CA answer file
 
@@ -226,7 +226,7 @@ EOF
 ```
 **NOTE**  
 
-the answers defines a x509 extentions which we will touch late on , for now we are going to just place it here.
+the answers defines a x509 extensions which we will touch late on , for now we are going to just place it here.
 
 ### Certificate Answer file 
 
@@ -308,7 +308,7 @@ $ oc create route edge --service=monkey-app \
   --hostname=tls-test-${USER}.example.local
 ```
 
-No run a test with curl which points to the url :
+Now run a test with curl which points to the url :
 ```bash
 $ curl -H "Content-Type: application/json" --cacert CA/ca.crt https://tls-test-${USER}.example.local/api/?says=banana
 ```

@@ -452,8 +452,9 @@ for :
 - CA_CERT
 - /opt/app-root/CA/ca.crt
 - ALLOWED_USER
-- <client certificate CN>
+- '<client certificate CN>'
 
+  
 Finally let's apply the deployment :
 ```bash
 $ oc apply -f Container/deployment.yaml

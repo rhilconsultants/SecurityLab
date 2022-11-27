@@ -215,11 +215,6 @@ The output should be :
 }
 ```
 
-If you want to go in to details about the MTLS negotiation you can add "vvv" arguments to the command :
-```bash
-$ curl -vvv --cacert CA/ca.crt -H "Content-Type: application/json" https://${ROUTE}/api/?says=banana
-```
-
 Can you tell which certificate is being used and why ?  
 Can you change it ?  
 

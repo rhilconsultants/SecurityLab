@@ -298,7 +298,7 @@ my-cert   2m51s   kubernetes.io/kube-apiserver-client   system:admin   Approved,
 Now that our certificate has been generated we can go ahead and extract it. sense the certificate is been saved as base64 we will need to decode the output
 
 ```bash
-$ oc get csr ${SHORT_NAME} -o jsonpath='{.status.certificate}' | base64 -d > kube.crt
+$ oc get csr ${USER}-crt -o jsonpath='{.status.certificate}' | base64 -d > kube.crt
 ```
 
 you can copy the OpenShift CA from /usr/share/ca-certs/

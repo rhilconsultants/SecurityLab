@@ -318,7 +318,7 @@ contexts:
 - context:
     cluster: OpenShift
     namespace: $USER-project
-    user: ${USER}/OpenShift
+    user: ${USER}
   name: $USER-project/OpenShift/${USER}
 current-context: $USER-project/OpenShift/${USER}
 kind: Config

@@ -303,7 +303,7 @@ $ oc get csr ${SHORT_NAME} -o jsonpath='{.status.certificate}' | base64 -d > kub
 
 you can copy the OpenShift CA from /usr/share/ca-certs/
 ```bash
-$ cp /usr/share/ca-certs/ocp-ca.crt .
+$ cp /usr/share/ca-certs/ocp-api.crt .
 ```
 
 Now use the following skeleton to build your kubeconfig file (create a file named kubeconfig.${USER}:

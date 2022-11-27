@@ -45,7 +45,7 @@ $ export SANDBOX="" # ask the Instructor
 Make sure we save it in our bashrc file
 ```bash
 $ echo 'export UUID="< the env UUID >"' >> ~/.bashrc
-$ echo echo 'export SANDBOX="< the ENV SANDBOX >"' >> ~/.bashrc
+$ echo 'export SANDBOX="< the ENV SANDBOX >"' >> ~/.bashrc
 ```
 
 Now login

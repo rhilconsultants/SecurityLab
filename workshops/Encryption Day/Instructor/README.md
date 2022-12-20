@@ -22,18 +22,18 @@ dnf install -y jq openssl podman p7zip httpd-tools curl wget rlwrap nmap telnet 
 Create a user for the Manager
 
 ```bash
-# export ADMIN_USER="" #set the admin username
+export ADMIN_USER="" #set the admin username
 ```
 
 Create a group for the admins users if you need more then one :
 ```bash
-# groupadd admins
-# useradd -g admins -G wireshark,disk,wheel ${ADMIN_USER}
+groupadd admins
+useradd -g admins -G wireshark,disk,wheel ${ADMIN_USER}
 ```
 
 Add the group to the soduers file
 ```bash
-# echo '%admins         ALL=(ALL)       NOPASSWD: ALL' >> /etc/sudoers
+echo '%admins         ALL=(ALL)       NOPASSWD: ALL' >> /etc/sudoers
 ```
 
 Copy the kubeconfig from root to the user manager
@@ -45,7 +45,7 @@ chown ${ADMIN_USER}:admins -R /home/${ADMIN_USER}/.kube/
 Create a tmux file for each of the users :
 
 ```bash
-# for num in {1..20};do
+for num in {1..20};do
 useradd user${num}
 echo 'openshift' | passwd --stdin user${num} 
 cat > /home/user${num}/.tmux.conf << EOF
@@ -63,7 +63,7 @@ done
 
 Now make sure the users are admin on thier namespace :
 ```bash
-# for num in {1..20};do
+for num in {1..20};do
 oc new-project user${num}-project
 oc adm policy add-role-to-user admin user${num} -n user${num}-project
 done
@@ -71,7 +71,7 @@ done
 
 Create a new cluster rule :
 ```bash
-$ cat > csr-clusterrole.yaml << EOF
+cat > csr-clusterrole.yaml << EOF
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -123,35 +123,35 @@ $ oc apply -f csr-clusterrole.yaml
 
 update all the users:
 ```bash
-# for num in {1..20};do
+for num in {1..20};do
 oc adm policy add-cluster-role-to-user csr-creator user${num}
 done
 ```
 
 Update the /etc/hosts file :
 ```bash
-# IPADDR=$(nslookup -q=a nana.apps.cluster-${UUID}.${UUID}.${SANDBOX} | \
-  grep Address | \
-  grep -v '#' | \
-  awk '{print $2}' | head -1)
-# for num in {1..20};do
+export UUID="" #set the admin username
+export SANDBOX="" #set the admin username
+nslookup -q=a nana.apps.cluster-${UUID}.${UUID}.${SANDBOX} | grep Address | awk '{print $2}' | awk -F'#' '{print $1}'
+
+for num in {1..20};do
 echo "${IPADDR}     tls-test-user${num}.example.local" >> /etc/hosts
 done
 ```
 Extact the CA from OpenShift to files :
 
 ```bash
-# oc -n openshift-authentication  \
+oc -n openshift-authentication  \
 rsh `oc get pods -n openshift-authentication -o name | head -1 `  cat /run/secrets/kubernetes.io/serviceaccount/ca.crt > \
 /etc/pki/ca-trust/source/anchors/opentls.crt
 
-# update-ca-trust extract
+update-ca-trust extract
 ```
 
 Export the OpenShift CA signer 
 ```bash
-# mkdir /usr/share/ca-certs/
+mkdir /usr/share/ca-certs/
 
-# oc get secret csr-signer -n openshift-kube-controller-manager-operator -o template='{{ index .data "tls.crt"}}' | base64 -d > /usr/share/ca-certs/ocp-ca.crt
+oc get secret csr-signer -n openshift-kube-controller-manager-operator -o template='{{ index .data "tls.crt"}}' | base64 -d > /usr/share/ca-certs/ocp-ca.crt
 ```
 

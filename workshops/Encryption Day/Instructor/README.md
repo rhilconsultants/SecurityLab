@@ -132,7 +132,7 @@ Update the /etc/hosts file :
 ```bash
 export UUID="" #set the admin username
 export SANDBOX="" #set the admin username
-nslookup -q=a nana.apps.cluster-${UUID}.${UUID}.${SANDBOX} | grep Address | awk '{print $2}' | awk -F'#' '{print $1}'
+export IPADDR=`nslookup -q=a nana.apps.cluster-${UUID}.${UUID}.${SANDBOX} | grep Address | awk '{print $2}' | awk -F'#' '{print $1}'`
 
 for num in {1..20};do
 echo "${IPADDR}     tls-test-user${num}.example.local" >> /etc/hosts

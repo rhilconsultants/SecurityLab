@@ -153,5 +153,8 @@ Export the OpenShift CA signer
 mkdir /usr/share/ca-certs/
 
 oc get secret csr-signer -n openshift-kube-controller-manager-operator -o template='{{ index .data "tls.crt"}}' | base64 -d > /usr/share/ca-certs/ocp-ca.crt
+
+cp /etc/pki/ca-trust/source/anchors/opentls.crt /usr/share/ca-certs/ocp-api.crt
+
 ```
 

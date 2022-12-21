@@ -143,7 +143,7 @@ Locality Name (eg, city) [Default City]:TLV
 Organization Name (eg, company) [Default Company Ltd]:BNHP
 Organizational Unit Name (eg, section) []:IT
 Common Name (eg, your name or your server's hostname) []:tls-test-<your user>.example.local
-Email Address []:user1@localhost
+Email Address []:${USER}@localhost
 
 Please enter the following 'extra' attributes
 to be sent with your certificate request

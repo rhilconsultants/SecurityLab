@@ -146,6 +146,8 @@ rsh `oc get pods -n openshift-authentication -o name | head -1 `  cat /run/secre
 /etc/pki/ca-trust/source/anchors/opentls.crt
 
 update-ca-trust extract
+
+cp /etc/pki/ca-trust/source/anchors/opentls.crt /usr/share/ca-certs/ocp-api.crt
 ```
 
 Export the OpenShift CA signer 
@@ -153,8 +155,5 @@ Export the OpenShift CA signer
 mkdir /usr/share/ca-certs/
 
 oc get secret csr-signer -n openshift-kube-controller-manager-operator -o template='{{ index .data "tls.crt"}}' | base64 -d > /usr/share/ca-certs/ocp-ca.crt
-
-cp /etc/pki/ca-trust/source/anchors/opentls.crt /usr/share/ca-certs/ocp-api.crt
-
 ```
 

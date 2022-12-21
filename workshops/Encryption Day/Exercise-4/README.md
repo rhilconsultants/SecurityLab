@@ -311,8 +311,8 @@ Now use the following skeleton to build your kubeconfig file (create a file name
 apiVersion: v1
 clusters:
 - cluster:
-    certificate-authority-data: <Base 64 CA>
-    server: <The Server API>
+    certificate-authority-data: BASE64_CA
+    server: SERVER_API
   name: OpenShift
 contexts:
 - context:
@@ -326,9 +326,24 @@ preferences: {}
 users:
 - name: ${USER}
   user:
-    client-certificate-data: < BASE64 Client CA>
-    client-key-data: < BASE64 Client Key>
+    client-certificate-data: BASE64_CRT
+    client-key-data: BASE64_KEY
 ```
+
+Replace the content of the file as follow :
+```bash
+$ export BASE64_CA=$(cat  ocp-api.crt | base64 -w0)
+$ export BASE64_CRT=$(cat  kube.crt | base64 -w0)
+$ export BASE64_KEY=$(cat  kube.key | base64 -w0)
+$ export SERVER_API=$(oc whoami --show-server)
+```
+Now use sed to replace the place holders
+```bash
+$ sed -i "s/BASE64_CA/${BASE64_CA}/g" kubeconfig.${USER}
+$ sed -i "s/BASE64_CRT/${BASE64_CRT}/g" kubeconfig.${USER}
+$ sed -i "s/BASE64_KEY/${BASE64_KEY}/g" kubeconfig.${USER}
+$ sed -i "s/SERVER_API/${SERVER_API}/g" kubeconfig.${USER}
+``` 
 
 log out from OpenShift
 ```

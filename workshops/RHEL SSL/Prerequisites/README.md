@@ -7,20 +7,50 @@ In order to start working with OpenShift pipeline you Need to have the following
   3. basic understanding of OpenShift and OpenShift Objects
 
 
-## OpenShift Cluster
-
-
-### Bastion login
+### Post login
 
 ```bash
-$ export UUID="" # ask the Instructor
-$ export SANDBOX="" # ask the Instructor
-USER #   ask the Instructor
-$ ssh USER@bastion.$UUID.${SANDBOX}
+$ export UUID="" # as Shown in the Environment link
 ```
 ### tmux
 
 for those of you who don't know tmux in a very powerful tool which allows us to run terminal manipulation in various forms. In our case we would want to slip the screen to 3 parts (vertical middle and 2 horizontal on the top side) to enable us better monitoring on all the process.
+
+#### tmux configuration file
+
+To make it easier to work with tmux you can create the following ".tmux.conf" file :
+
+##### For Linux Users
+
+If you are login in from a Linux Machine create the file with the following content :
+
+```bash
+$ cat > ~/.tmux.conf << EOF
+unbind C-b
+set -g prefix C-a
+bind -n C-Left select-pane -L
+bind -n C-Right select-pane -R
+bind -n C-Up select-pane -U
+bind -n C-Down select-pane -D
+bind C-Y set-window-option synchronize-panes
+EOF
+```
+
+##### For Windows/Mac users
+
+If you are logged in from a Windows/Mac machine create the following file :
+
+```bash
+$ cat > ~/.tmux.conf << EOF
+unbind C-b
+set -g prefix C-a
+bind -n M-Left select-pane -L
+bind -n M-Right select-pane -R
+bind -n M-Up select-pane -U
+bind -n M-Down select-pane -D
+bind C-Y set-window-option synchronize-panes
+EOF
+```
 
 Start a tmux session :
 
@@ -35,20 +65,9 @@ To navigate between them you can run CTRL+ARROW and the arrows.
 
 Once you have logged in to the Bastion server you can connect to the cluster :
 
-### Cluster Login
-
-```bash
-$ export UUID="" # ask the Instructor
-$ export SANDBOX="" # ask the Instructor
-```
+### Saving setting
 
 Make sure we save it in our bashrc file
 ```bash
 $ echo 'export UUID="< the env UUID >"' >> ~/.bashrc
-$ echo 'export SANDBOX="< the ENV SANDBOX >"' >> ~/.bashrc
-```
-
-Now login
-```bash
-$ oc login --username=${USER} --password='r3dh4t1!' --server=api.cluster-${UUID}.${UUID}.${SANDBOX}:6443
 ```

@@ -106,7 +106,7 @@ If you enter '.', the field will be left blank.
 Country Name (2 letter code) [XX]:IL
 State or Province Name (full name) []:Center
 Locality Name (eg, city) [Default City]:TLV
-Organization Name (eg, company) [Default Company Ltd]:BNHP
+Organization Name (eg, company) [Default Company Ltd]:My-Comp
 Organizational Unit Name (eg, section) []:IT
 Common Name (eg, your name or your server's hostname) []:tls-test.${UUID}-very-long.apps.my-httpd-${UUID}.${UUID}.somedomain.letmethink.about.it
 string is too long, it needs to be no more than 64 bytes long
@@ -121,7 +121,7 @@ $ echo "tls-test-${UUID}.example.local"
 ```
 **NOTE**  
 
-Don't worry it is already in our /etc/hosts file 
+Every URL needs to have a resolving ...
 
 Let's run the CSR command again :
 ```bash
@@ -140,10 +140,10 @@ If you enter '.', the field will be left blank.
 Country Name (2 letter code) [XX]:IL
 State or Province Name (full name) []:Center
 Locality Name (eg, city) [Default City]:TLV
-Organization Name (eg, company) [Default Company Ltd]:BNHP
+Organization Name (eg, company) [Default Company Ltd]:My-Comp
 Organizational Unit Name (eg, section) []:IT
 Common Name (eg, your name or your server's hostname) []:tls-test-< your uuid >.example.local
-Email Address []:${USER}@localhost
+Email Address []:student@localhost
 
 Please enter the following 'extra' attributes
 to be sent with your certificate request
@@ -281,9 +281,10 @@ $ openssl x509 -req -in CSR/tls-test.csr -CA CA/ca.crt -CAkey Keys/ca.key \
   -extfile <(cat Afile/tls_answer.txt)
 ```
 
-For the last step go ahaed and verify your certificate 
+For the last step go ahead and verify your certificate 
 ```bash
 $ openssl verify -CAfile CA/ca.crt Certs/tls-test.crt
+Certs/tls-test.crt: OK
 ```
 **Question**  
 
@@ -292,23 +293,41 @@ Why do we need to verify the certificate ?
 Let's test our certificate by running an httpd virtual host and attaching the certificate to it
 
 First let's make sure we have an httpd server installed with mod_ssl
+
+Switching to root and export the UUID again
 ```bash
-$ dnf install -y httpd mod_ssl
+$ sudo su -
+# export UUID='<your UUID>'
+```
+
+##### Update the /etc/hosts file 
+Set the IP address in to a variable and update the /etc/hosts file with the following command :
+```bash
+# export IP_ADDR=$(ip addr show | grep 'inet ' | grep eth0 | awk '{print $2}' | awk -F \/ '{print $1}')
+# echo "${IP_ADDR}     tls-test-${UUID}.example.local" >> /etc/hosts
+```
+
+##### Installing and running httpd
+
+Install the httpd Service with mod_ssl
+```bash
+# dnf install -y httpd mod_ssl
 ```
 And make sure the port 443 is open on the firewall
 ```bash
-$ firewall-cmd --add-service=https --permanent
-$ systemctl restart httpd
+# systemctl enable --now firewalld
+# firewall-cmd --add-service=https --permanent
+# firewall-cmd --reload
 ```
 
 For this demo we will create a small website under /opt/website1/
 ```bash
-$ mkdir -p /opt/website1/{html,ssl,logs}
+# mkdir -p /opt/website1/{html,ssl,logs}
 ```
 
 and create a simple HTML file that we should get once we enter the page
 ```bash
-$ echo '<html>
+# echo '<html>
 <head>
 <title>This is a simple SSL Test</title>
 </head>
@@ -319,33 +338,61 @@ $ echo '<html>
 ```
 And Copy the SSL file to the relevant directory
 ```bash
-$ cp ${TLS_BASE}/Certs/tls-test.crt /opt/website1/ssl/
-$ cp ${TLS_BASE}/Keys/tls-test.key /opt/website1/ssl/
-$ cp ${TLS_BASE}/CA/ca.crt /opt/website1/ssl/
+# export TLS_BASE="/home/student/TLS/"
+# cp ${TLS_BASE}/Certs/tls-test.crt /opt/website1/ssl/
+# cp ${TLS_BASE}/Keys/tls-test.key /opt/website1/ssl/
+# cp ${TLS_BASE}/CA/ca.crt /opt/website1/ssl/
 ```
 
 For security we have decided to keep SElinux in Enforcement mode so we need to change the SElinux label of the parent Directory:
 ```bash
-$ semanage fcontext -a -t httpd_sys_content_t "/opt/website1(/.*)?"
-$ restorecon -R -v /opt/website1
+# semanage fcontext -a -t httpd_sys_content_t "/opt/website1(/.*)?"
+# semanage fcontext -a -t httpd_log_t "/opt/website1/logs(/.*)?"
+# restorecon -R -v /opt/website1
 ```
 
 Now let's create our virtual host with a reference to the SSL certificate's files:
 ```bash
-$ echo "<VirtualHostName *:443>
-   <VirtualHost tls-test-${UUID}.example.local:443>
-       Require ssl
-       SSLEngine on
-       SSLCertificateFile /opt/website1/ssl/tls-test.crt
-       SSLCertificateKeyFile /opt/website1/ssl/tls-test.key
-       SSLCACertificateFile /opt/website1/ssl/ca.crt
-       ServerName tls-test-${UUID}.example.local
-       DocumentRoot /opt/website1/html/
-       <Directory /opt/website1/html/>
-          +Indexes index.html   
-       </Directory>
-       ErrorLog /opt/website1/logs/error.log
-       CustomLog /opt/website1/logs/access.log combined
-   </VirtualHost>" > /etc/httpd/conf.d/tls-test.conf
+$ echo "<VirtualHost tls-test-${UUID}.example.local:443>
+    SSLEngine on
+    SSLCertificateFile /opt/website1/ssl/tls-test.crt
+    SSLCertificateKeyFile /opt/website1/ssl/tls-test.key
+    SSLCACertificateFile /opt/website1/ssl/ca.crt
+    ServerName tls-test-${UUID}.example.local
+    DocumentRoot /opt/website1/html/
+    <Directory /opt/website1/html/>
+       DirectoryIndex index.html
+       Require all granted
+       Options Indexes   
+    </Directory>
+    ErrorLog /opt/website1/logs/error.log
+    CustomLog /opt/website1/logs/access.log combined
+</VirtualHost>" > /etc/httpd/conf.d/tls-test.conf
 ```
 
+Now Restart/Start the service
+```bash
+# systemctl enable --now httpd
+```
+
+Add the CA to our system directory :
+In Linux we can update the system with our own custom CA.\\
+We will copy the ca.crt file to the following path : '/etc/pki/ca-trust/source/anchors/' and then update the CA trust list :
+```bash
+# cp /home/student/TLS/CA/ca.crt /etc/pki/ca-trust/source/anchors/custom-ca.crt
+# update-ca-trust extract
+```
+
+Go back to user Student and test the certificate
+```bash
+# exit
+$ curl https://tls-test-${UUID}.example.local/index.html
+```
+
+Now to view our certificate with openssl run the following command :
+```bash
+$ echo quit | openssl s_client -showcerts -servername tls-test-${UUID}.example.local -connect tls-test-${UUID}.example.local:443
+```
+
+Good work !!! 
+You are now done with Exercise 1

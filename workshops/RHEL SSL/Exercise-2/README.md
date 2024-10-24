@@ -11,23 +11,18 @@ $ cd $TLS_BASE/
 
 ## DNS Alter Name
 
-From the previous exercise we create a TLS certificate to different route then we are getting from the wildcard due to FQDN bigger then 64 bits.
-with DNS alter name we don't have that problem so we will create a new certificate with the full FQDN of the wildcard (the default)
+From the previous exercise we create a TLS certificate for our HTTPD VirtualHost configuration and made sure the FQDN is not bigger then 64 bits.
+with DNS alter name we don't have that problem so we will create a new certificate with the full FQDN of the long-cert (the default)
 
-First let's delete the old route
+First let's generate a new answer file for our VirtulaHost:
 ```bash
-$ oc delete route monkey-app
-```
-
-Now we will generate a new answer file for our new route:
-```bash
-$ export DOMAIN="apps.cluster-${UUID}.${UUID}.${SANDBOX}"
-$ export SHORT_NAME="monkey-app-${USER}-project"
+$ export DOMAIN="${UUID}-very-long.apps.my-httpd-${UUID}.${UUID}.somedomain.letmethink.about.it"
+$ export SHORT_NAME="tls-test"
 ```
 
 Here is how the Answer file should look like :
 ```bash
-$ cat > Afile/wildcard_csr.txt << EOF
+$ cat > Afile/long-cert_csr.txt << EOF
 [req]
 default_bits = 2048
 prompt = no
@@ -47,7 +42,7 @@ CN = ${SHORT_NAME}
 
 [ req_ext ]
 nsCertType = server
-nsComment="The wildcard certificate for monkey-app"
+nsComment="The long-cert certificate for VirtualHost"
 subjectAltName = @alt_names
 keyUsage=digitalSignature
 extendedKeyUsage=serverAuth
@@ -62,52 +57,71 @@ EOF
 
 Now Let's create the CSR :
 ```bash
-$ openssl req -new -key Keys/tls-test.key -out CSR/wildcard.csr -config <( cat Afile/wildcard_csr.txt )
+$ openssl req -new -key Keys/tls-test.key -out CSR/long-cert.csr -config <( cat Afile/long-cert_csr.txt )
 ```
 
 Now let's look at the request and find the Alter DNS names we configured :
 ```bash
-$ openssl req -in CSR/wildcard.csr -noout -text | grep DNS
+$ openssl req -in CSR/long-cert.csr -noout -text | grep DNS
 ```
 
 Now go ahead and sign the certificate :
 ```bash
-$ openssl x509 -req -in CSR/wildcard.csr -CA CA/ca.crt -CAkey Keys/ca.key \
-  -CAcreateserial -out Certs/wildcard.crt -days 730 -extensions 'req_ext' \
-  -extfile <(cat Afile/wildcard_csr.txt)
+$ openssl x509 -req -in CSR/long-cert.csr -CA CA/ca.crt -CAkey Keys/ca.key \
+  -CAcreateserial -out Certs/long-cert.crt -days 730 -extensions 'req_ext' \
+  -extfile <(cat Afile/long-cert_csr.txt)
 ```
 
 And look at the new certificate for the DNS alter names :
 ```bash
-$ openssl x509 -in Certs/wildcard.crt -text -noout | grep DNS
+$ openssl x509 -in Certs/long-cert.crt -text -noout | grep DNS
 ```
 And Go over the full SSLv3 extensions :
 ```bash
-$ openssl x509 -in Certs/wildcard.crt -text -noout | less
+$ openssl x509 -in Certs/long-cert.crt -text -noout | less
 ```
 
 In both test cases you should see the 2 DNS alter names.
 
-Let's recreate the route with the new wildcard certificate :
+Let's create a new VirtualHost with out new certificate :
 ```bash
-$ oc create route edge monkey-app --service=monkey-app \
-  --cert=Certs/wildcard.crt --key=Keys/tls-test.key \
-  --ca-cert=CA/ca.crt --insecure-policy=Redirect \
-  --port=8080 
+$ echo "<VirtualHost ${SHORT_NAME}.${DOMAIN}:443>
+    SSLEngine on
+    SSLCertificateFile /opt/website1/ssl/long-cert.crt
+    SSLCertificateKeyFile /opt/website1/ssl/tls-test.key
+    SSLCACertificateFile /opt/website1/ssl/ca.crt
+    ServerName ${SHORT_NAME}.${DOMAIN}
+    DocumentRoot /opt/website1/html/
+    <Directory /opt/website1/html/>
+       DirectoryIndex index.html
+       Require all granted
+       Options Indexes   
+    </Directory>
+    ErrorLog /opt/website1/logs/error.log
+    CustomLog /opt/website1/logs/access.log combined
+</VirtualHost>" > /opt/conf/tls-long.conf
 ```
 
-get the route 
+Now copy the certificate to the configured path :
 ```bash
-$ export ROUTE=$(oc get route monkey-app -o jsonpath='{.spec.host}')
+$  cp ${TLS_BASE}/Certs/long-cert.crt /opt/website1/ssl/
 ```
 
-and run the curl just like in the previus exercise :
+As before , we need to update our /etc/hosts file with the FQDN (Fully qualified Domain Name)
 ```bash
-$ curl -H "Content-Type: application/json" --cacert CA/ca.crt https://${ROUTE}/api/?says=banana ; echo
-{
-  "result": "Success",
-  "message": "Monkey says: banana"
-}
+$ export IP_ADDR=$(ip addr show | grep 'inet ' | grep eth0 | awk '{print $2}' | awk -F \/ '{print $1}')
+$ echo "${IP_ADDR}     ${SHORT_NAME}.${DOMAIN} ${SHORT_NAME}" | sudo tee -a /etc/hosts   
+```
+
+Restart the httpd service with the added configuration : 
+```bash
+$ sudo systemctl reload httpd
+```
+
+Now let's run the curl just like in the previous exercise :
+```bash
+$ curl https://${SHORT_NAME}.${DOMAIN} ; echo
+
 ```
 
 Great Job So far !!!
@@ -117,7 +131,7 @@ If we want to see the server certificate (and CA in some cases) we can use opens
 Run the following command :
 
 ```bash
-$  echo quit | openssl s_client -showcerts -servername ${ROUTE} -connect ${ROUTE}:443
+$  echo quit | openssl s_client -showcerts -servername ${SHORT_NAME}.${DOMAIN} -connect ${SHORT_NAME}.${DOMAIN}:443
 ```
 
 As you can see we have obtain (In clear text) both the Sever and the CA certificates.
@@ -180,168 +194,54 @@ $ openssl x509 -req -in CSR/client.csr -CA CA/ca.crt \
   -days 730 -extensions 'req_ext' -extfile <(cat Afile/client_csr.txt)
 ```
 
-Now that we have everything in place we can run a few test.
+Now that we have everything in place we can Set up our website to enable MTLS.
 
-## On OpenShift
+### Server Side MTLS
 
-In order to test our new configuration we will setup an httpd Container , instruct in to use TLS and create an MTLS configuration to check
-the CN of the client certificate :
-
-### Create the Container
-
-Create a new directory :
+We will update our website from Exercise 1 So it will only expect request which are using the Client Certificate.\\
+\\
+Before we change the configuration file we need to set the ALLOWED_USER variable
+Base on the Client Certificate set the variable:
 ```bash
-$ mkdir $TLS_BASE/Container && cd $TLS_BASE/Container
+$ export ALLOWED_USER="<your answer>"
 ```
+After the variable placement, we will update the website configuration file with the following content :
 
-create a file called ssl.conf with the following content :
 ```bash
-$ cat > ssl.conf << EOF
-Listen 443 https
-
-
-SSLPassPhraseDialog exec:/usr/libexec/httpd-ssl-pass-dialog
-
-SSLSessionCache         shmcb:/run/httpd/sslcache(512000)
-SSLSessionCacheTimeout  300
-
-SSLRandomSeed startup file:/dev/urandom  256
-SSLRandomSeed connect builtin
-
-SSLCryptoDevice builtin
-EOF
+$ echo "<VirtualHost tls-test-${UUID}.example.local:443>
+    SSLEngine on
+    SSLCertificateFile /opt/website1/ssl/tls-test.crt
+    SSLCertificateKeyFile /opt/website1/ssl/tls-test.key
+    SSLCACertificateFile /opt/website1/ssl/ca.crt
+    ServerName tls-test-${UUID}.example.local
+    DocumentRoot /opt/website1/html/
+    <Directory /opt/website1/html/>
+       DirectoryIndex index.html
+       Require all granted
+       Options Indexes   
+    </Directory>
+    ErrorLog /opt/website1/logs/error.log
+    CustomLog /opt/website1/logs/access.log combined   
+    <Location />
+       SSLVerifyClient require
+       SSLVerifyDepth 1
+       SSLOptions +StdEnvVars
+       <RequireAny>
+          Require expr %{SSL_CLIENT_S_DN_CN} == \"${ALLOWED_USER}\"
+       </RequireAny>
+    </Location>
+</VirtualHost>" > /opt/conf/tls-test.conf
 ```
-
-and a simple index.html file
-```bash
-$ cat > index.html << EOF
-<html>
-<head>
-<title> this is a test </title>
-<body>
-<p> this is the ${USER} page </p>
-</body>
-</html>
-EOF
-```
-
-Create a Dockerfile which the following content :
-```bash
-$ cat > Dockerfile << EOF
-FROM centos:stream8
-MAINTAINER ${USER} <apache SSL>
-RUN dnf install -y httpd mod_ssl 
-COPY run-httpd.sh /usr/sbin/run-httpd.sh
-COPY ssl.conf /etc/httpd/conf.d/ssl.conf 
-
-RUN echo "PidFile /tmp/http.pid" >> /etc/httpd/conf/httpd.conf
-RUN sed -i "s/Listen\ 80/Listen\ 8080/g"  /etc/httpd/conf/httpd.conf
-RUN sed -i "s/Listen\ 443/Listen\ 8443/g" /etc/httpd/conf.d/ssl.conf 
-RUN sed -i "s/\"logs\/error_log\"/\/dev\/stderr/g" /etc/httpd/conf/httpd.conf
-RUN sed -i "s/CustomLog \"logs\/access_log\"/CustomLog \/dev\/stdout/g" /etc/httpd/conf/httpd.conf
-
-RUN echo 'IncludeOptional /opt/app-root/*.conf' >> /etc/httpd/conf/httpd.conf
-RUN mkdir /opt/app-root/ && \
-    chown apache:apache /opt/app-root/ && \
-    chmod 777 /opt/app-root/ && \
-    chmod a+x /usr/sbin/run-httpd.sh
-
-COPY index.html /opt/app-root/
-
-USER apache
-
-EXPOSE 8080 8443
-ENTRYPOINT ["/usr/sbin/run-httpd.sh"]
-EOF
-```
-
-Now we need to create a configuration file which enables the modules we just installed but we need to it when the Service starts.
-The best way to do that is to create a startup scripts which generate the configuration file.
-
-Let’s generate the the “run-httpd.sh” script :
+And generate a new certificate for our httpd website 
 
 ```bash
-$ echo '#!/bin/bash
-
-if [ -z ${SSL_CERT} ]; then
-        echo "Environment variable SSL_CERT undefined"
-        exit 1
-elif [[ -z ${SSL_KEY} ]]; then
-        echo "Environment variable SSL_KEY undefined"
-        exit 1
-elif [[ -z ${CA_CERT} ]]; then
-        echo "Environment variable CA_CERT undefined"
-        exit 1
-elif [[ -z ${ALLOWED_USER} ]]; then
-        echo "Environment variable ALLOWED_USER undefined"
-        exit 1
-fi
-
-echo "
-<VirtualHost *:8443>
-        DocumentRoot /opt/app-root
-        SSLEngine on
-        SSLCertificateFile ${SSL_CERT}
-        SSLCertificateKeyFile ${SSL_KEY}
-        SSLCACertificateFile ${CA_CERT}
-        <Directory "/opt/app-root/">
-                AllowOverride All
-                Options +Indexes
-                DirectoryIndex index.html
-        </Directory>        
-        <Location />
-        SSLVerifyClient require
-        SSLVerifyDepth 1
-        SSLOptions +StdEnvVars
-        <RequireAny>
-           Require expr %{SSL_CLIENT_S_DN_CN} == \"${ALLOWED_USER}\"
-        </RequireAny>
-        </Location>
-</VirtualHost>
-" > /tmp/reverse.conf
-mv /tmp/reverse.conf /opt/app-root/reverse.conf
-/usr/sbin/httpd $OPTIONS -DFOREGROUND' > run-httpd.sh
-```
-
-Now we can build the image
-
-```bash
-$ buildah bud -f Dockerfile -t httpd-mtls
-```
-
-Login to OpenShift's internal registry :
-```bash
-$ export REGISTRY="default-route-openshift-image-registry.apps.cluster-${UUID}.${UUID}.${SANDBOX}"
-$ podman login -u $(oc whoami) -p $(oc whoami -t) ${REGISTRY}
-```
-
-Now push the image to the registry :
-```bash
-$ podman tag httpd-mtls ${REGISTRY}/$USER-project/httpd-mtls
-$ podman push ${REGISTRY}/$USER-project/httpd-mtls
-```
-
-Grep the the internal registry reference from the imagestream:
-```bash
-$ export IMAGE_REF=$(oc get imagestream httpd-mtls -o jsonpath='{.status.dockerImageRepository}')
-```
-
-Now Let's create our CA as a configMap :
-```bash
-$ cd $TLS_BASE
-$ oc create cm ca-cert --from-file=ca.crt=CA/ca.crt 
-```
-
-And generate a new certificate for our httpd route (this time the route will be pass-through)
-
-```bash
-$ export DOMAIN="apps.cluster-${UUID}.${UUID}.${SANDBOX}"
-$ export SHORT_NAME="httpd-mtls-${USER}-project"
+$ export DOMAIN="example.local"
+$ export SHORT_NAME="tls-test-${UUID}"
 ```
 
 Here is how the Answer file should look like :
 ```bash
-$ cat > Afile/httpd-mtls_csr.txt << EOF
+$ cat > Afile/tls-test_csr.txt << EOF
 [req]
 default_bits = 2048
 prompt = no
@@ -361,7 +261,7 @@ CN = ${SHORT_NAME}
 
 [ req_ext ]
 nsCertType = server
-nsComment="The wildcard certificate for MTLS"
+nsComment="The long-cert certificate for MTLS"
 subjectAltName = @alt_names
 keyUsage=digitalSignature
 extendedKeyUsage=serverAuth
@@ -374,116 +274,27 @@ DNS.2 = ${SHORT_NAME}.${DOMAIN}
 EOF
 ```
 
-Create a new key
+Let's create the CSR :
 ```bash
-$ openssl genrsa -out Keys/httpd-mtls.key 4096
-```
-
-Now Let's create the CSR :
-```bash
-$ openssl req -new -key Keys/httpd-mtls.key -out CSR/httpd-mtls.csr -config <( cat Afile/httpd-mtls_csr.txt )
+$ openssl req -new -key Keys/tls-test.key -out CSR/tls-test.csr -config <( cat Afile/tls-test_csr.txt )
 ```
 
 Now go ahead and sign the certificate :
 ```bash
-$ openssl x509 -req -in CSR/httpd-mtls.csr -CA CA/ca.crt -CAkey Keys/ca.key \
-  -CAcreateserial -out Certs/httpd-mtls.crt -days 730 -extensions 'req_ext' \
-  -extfile <(cat Afile/httpd-mtls_csr.txt)
+$ openssl x509 -req -in CSR/tls-test.csr -CA CA/ca.crt -CAkey Keys/ca.key \
+  -CAcreateserial -out Certs/tls-test.crt -days 730 -extensions 'req_ext' \
+  -extfile <(cat Afile/tls-test_csr.txt)
 ```
 
-Create a Secret that will hold both the key and certificate :
-```bash
-$ oc create secret tls http-mtls-tls --cert=Certs/httpd-mtls.crt --key=Keys/httpd-mtls.key
-```
+Before we start the testing reload the httpd service
 
-Now for the deployment.
+### Test the MTLS
 
-First crate a skeleton :
-```bash
-$ oc create deployment httpd-mtls --image=${IMAGE_REF} --port=8443 -o yaml --dry-run=client > Container/deployment.yaml
-```
-
-in the YAML file remove the "timestamp" lines add the following 
-```YAML
-spec:
-  ...
-  template:
-  ...
-    spec:
-      containers:
-      - name: httpd-mtls
-        ...
-        volumeMounts:
-          - mountPath: "/opt/app-root/ssl"
-            name: mtls-keys
-            readOnly: true
-          - name: ca-cert
-            mountPath: /opt/app-root/CA/ca.crt
-            subPath: ca.crt
-      volumes:
-        - name: mtls-keys
-          secret:
-            secretName: http-mtls-tls
-        - name: ca-cert
-          configMap:
-            name: ca-cert
-
-```
-
-**Open Task**  
-
-Modify the deployment so the httpd-mtls will not fail upon run.
-add the required ENV to the YAML
-```yaml
-spec:
-  template:
-    spec:
-      containers:
-      - name: httpd-mtls
-        env:
-        - name:
-          value:
-```
-for :
-- SSL_CERT
-- /opt/app-root/ssl/tls.crt
-- SSL_KEY
-- /opt/app-root/ssl/tls.key
-- CA_CERT
-- /opt/app-root/CA/ca.crt
-- ALLOWED_USER
-- '<client certificate CN>'
-
-  
-Finally let's apply the deployment :
-```bash
-$ oc apply -f Container/deployment.yaml
-```
-
-### Deploy the Container service and route
-
-create the service
-```bash
-$ oc create service clusterip httpd-mtls --tcp=8443 
-```
-
-and a route that should be TLS passthrough because we want the httpd to handle the ssl request:
-```bash
-$ oc create route passthrough httpd-mtls --service=httpd-mtls --insecure-policy=Redirect
-```
-
-### test the MTLS
-
-we will use curl to run a test on our MTLS configuration
-
-First greb the route to our MTLS_ROUTE variable:
-```bash
-$ export ROUTE_MTLS=$(oc get route httpd-mtls -o jsonpath='{.spec.host}')
-```
+We will use curl to run a test on our MTLS configuration
 
 First run the curl without the client certificate
 ```bash
-$ curl --cacert CA/ca.crt https://${ROUTE_MTLS}
+$ curl --cacert CA/ca.crt https://${SHORT_NAME}.${DOMAIN}
 curl: (56) OpenSSL SSL_read: error:1409445C:SSL routines:ssl3_read_bytes:tlsv13 alert certificate required, errno 0
 ```
 
@@ -491,22 +302,23 @@ This error message is actually Good for us as it indicates that the client needs
 
 Now Let's run it with the client certificate 
 ```bash
-$ curl --cacert CA/ca.crt --cert Certs/client.crt --key Keys/client.key https://${ROUTE_MTLS}
+$ curl --cacert CA/ca.crt --cert Certs/client.crt --key Keys/client.key https://${SHORT_NAME}.${DOMAIN}
 ```
 
 If you see your index.html file that you are good to go !!!
 ```
 <html>
 <head>
-<title> this is a test </title>
+<title>This is a simple SSL Test</title>
+</head>
 <body>
-<p> this is the ${USER} page </p>
+<p1>Simple SSL Test</p1>
 </body>
 </html>
 ```
 If you want to go in to details about the MTLS negotiation you can add "vvv" arguments to the command :
 ```bash
-$ curl -vvv --cacert CA/ca.crt -H "Content-Type: application/json" https://${ROUTE}/api/?says=banana
+$ curl -vvv --cacert CA/ca.crt --cert Certs/client.crt --key Keys/client.key https://${SHORT_NAME}.${DOMAIN}
 ```
 
 
@@ -515,5 +327,5 @@ As noted before We can use openssl as our TLS client and retrieve the public cer
 
 and run the following command :
 ```bash
-$  echo quit | openssl s_client -showcerts -servername ${ROUTE_MTLS} -connect ${ROUTE_MTLS}:443
+$  echo quit | openssl s_client -showcerts -servername ${SHORT_NAME}.${DOMAIN} -connect ${SHORT_NAME}.${DOMAIN}:443
 ```

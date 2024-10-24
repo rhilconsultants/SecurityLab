@@ -315,6 +315,7 @@ Install the httpd Service with mod_ssl
 ```
 And make sure the port 443 is open on the firewall
 ```bash
+# dnf install -y firewalld
 # systemctl enable --now firewalld
 # firewall-cmd --add-service=https --permanent
 # firewall-cmd --reload
@@ -323,6 +324,11 @@ And make sure the port 443 is open on the firewall
 For this demo we will create a small website under /opt/website1/
 ```bash
 # mkdir -p /opt/website1/{html,ssl,logs}
+# mkdir /opt/conf/
+# echo 'IncludeOptional /opt/conf/*.conf' >> /etc/httpd/conf/httpd.conf
+# setfacl -m -d user:student:rwx conf/
+# setfacl -m user:student:rwx conf/
+# setfacl -R -m user:student:rwx /opt/website1
 ```
 
 and create a simple HTML file that we should get once we enter the page
@@ -348,7 +354,9 @@ For security we have decided to keep SElinux in Enforcement mode so we need to c
 ```bash
 # semanage fcontext -a -t httpd_sys_content_t "/opt/website1(/.*)?"
 # semanage fcontext -a -t httpd_log_t "/opt/website1/logs(/.*)?"
-# restorecon -R -v /opt/website1
+# semanage fcontext -a -t httpd_config_t "/opt/conf(/.*)?"
+# restorecon -R -v /opt/
+# exit
 ```
 
 Now let's create our virtual host with a reference to the SSL certificate's files:
@@ -367,26 +375,37 @@ $ echo "<VirtualHost tls-test-${UUID}.example.local:443>
     </Directory>
     ErrorLog /opt/website1/logs/error.log
     CustomLog /opt/website1/logs/access.log combined
-</VirtualHost>" > /etc/httpd/conf.d/tls-test.conf
+</VirtualHost>" > /opt/conf/tls-test.conf
 ```
 
 Now Restart/Start the service
 ```bash
-# systemctl enable --now httpd
+$ sudo systemctl enable --now httpd
 ```
 
 Add the CA to our system directory :
 In Linux we can update the system with our own custom CA.\\
 We will copy the ca.crt file to the following path : '/etc/pki/ca-trust/source/anchors/' and then update the CA trust list :
 ```bash
-# cp /home/student/TLS/CA/ca.crt /etc/pki/ca-trust/source/anchors/custom-ca.crt
-# update-ca-trust extract
+$ sudo cp ${TLS_BASE}/CA/ca.crt /etc/pki/ca-trust/source/anchors/custom-ca.crt
+$ sudo update-ca-trust extract
 ```
 
-Go back to user Student and test the certificate
+We can noe test the certificate with curl
 ```bash
-# exit
-$ curl https://tls-test-${UUID}.example.local/index.html
+$ curl https://tls-test-${UUID}.example.local/
+```
+
+your output should be :
+```
+<html>
+<head>
+<title>This is a simple SSL Test</title>
+</head>
+<body>
+<p1>Simple SSL Test</p1>
+</body>
+</html>
 ```
 
 Now to view our certificate with openssl run the following command :
@@ -394,5 +413,5 @@ Now to view our certificate with openssl run the following command :
 $ echo quit | openssl s_client -showcerts -servername tls-test-${UUID}.example.local -connect tls-test-${UUID}.example.local:443
 ```
 
-Good work !!! 
-You are now done with Exercise 1
+#### Good work !!!\\
+You can now continue to configure MTLS

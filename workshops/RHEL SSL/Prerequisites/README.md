@@ -18,6 +18,11 @@ for those of you who don't know tmux in a very powerful tool which allows us to 
 
 #### tmux configuration file
 
+##### Install tmux
+```bash
+$ sudo dnf install -y tmux
+```
+
 To make it easier to work with tmux you can create the following ".tmux.conf" file :
 
 ##### For Linux Users
@@ -55,9 +60,11 @@ EOF
 Start a tmux session :
 
 ```bash
-tmux new-session -s ocp
+tmux new-session -s ${UUID}
 ```
 
+
+#### Optional
 next we will split the screen by clicking on CTRL+a then '"'.  
 Now we will Navigate to the top bar by CTRL+UP (the ARROW UP)  
 and create another slip horizontally by running CTRL+a then "%"  

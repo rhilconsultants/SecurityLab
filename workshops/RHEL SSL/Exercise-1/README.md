@@ -13,6 +13,7 @@ $ echo 'export TLS_BASE="$HOME/TLS"' >> ~/.bashrc
 $ mkdir ${TLS_BASE}/CA ${TLS_BASE}/Certs ${TLS_BASE}/Keys ${TLS_BASE}/CSR
 ```
 ## Interactive
+
 ### Generate the CA certificate and Key
 
 First go the TLS directory
@@ -49,7 +50,7 @@ Locality Name (eg, city) [Default City]:TLV
 Organization Name (eg, company) [Default Company Ltd]: My-Comp
 Organizational Unit Name (eg, section) []:IT
 Common Name (eg, your name or your server's hostname) []:ca-server
-Email Address []: student@localhost
+Email Address []: ec2-user@localhost
 ```
 
 Now we have a fully function CA in the certificate if valid for 730 ( 2 Years )
@@ -292,19 +293,20 @@ Why do we need to verify the certificate ?
 
 Let's test our certificate by running an httpd virtual host and attaching the certificate to it
 
-First let's make sure we have an httpd server installed with mod_ssl
-
-Switching to root and export the UUID again
+Login to Servera and Export the UUID again 
 ```bash
+$ ssh ec2-user@servera
+$ export UUID='<your UUID>'
+$ history | grep export | grep UUID | grep -v grep | awk '{print $2 " " $3}' >> ~/.bashrc
 $ sudo su -
-# export UUID='<your UUID>'
+#
 ```
 
 ##### Update the /etc/hosts file 
 Set the IP address in to a variable and update the /etc/hosts file with the following command :
 ```bash
 # export IP_ADDR=$(ip addr show | grep 'inet ' | grep eth0 | awk '{print $2}' | awk -F \/ '{print $1}')
-# echo "${IP_ADDR}     tls-test-${UUID}.example.local" >> /etc/hosts
+# echo "${IP_ADDR}     tls-test-${UUID}.example.local tls-test-${UUID}" | tee -a /etc/hosts
 ```
 
 ##### Installing and running httpd
@@ -326,28 +328,9 @@ For this demo we will create a small website under /opt/website1/
 # mkdir -p /opt/website1/{html,ssl,logs}
 # mkdir /opt/conf/
 # echo 'IncludeOptional /opt/conf/*.conf' >> /etc/httpd/conf/httpd.conf
-# setfacl -m -d user:student:rwx conf/
-# setfacl -m user:student:rwx conf/
-# setfacl -R -m user:student:rwx /opt/website1
-```
-
-and create a simple HTML file that we should get once we enter the page
-```bash
-# echo '<html>
-<head>
-<title>This is a simple SSL Test</title>
-</head>
-<body>
-<p1>Simple SSL Test</p1>
-</body>
-</html>' > /opt/website1/html/index.html
-```
-And Copy the SSL file to the relevant directory
-```bash
-# export TLS_BASE="/home/student/TLS/"
-# cp ${TLS_BASE}/Certs/tls-test.crt /opt/website1/ssl/
-# cp ${TLS_BASE}/Keys/tls-test.key /opt/website1/ssl/
-# cp ${TLS_BASE}/CA/ca.crt /opt/website1/ssl/
+# setfacl -m user:ec2-user:rwx /opt/conf/
+# setfacl -d -m user:ec2-user:rwx /opt/conf/
+# setfacl -R -m user:ec2-user:rwx /opt/website1
 ```
 
 For security we have decided to keep SElinux in Enforcement mode so we need to change the SElinux label of the parent Directory:
@@ -356,7 +339,23 @@ For security we have decided to keep SElinux in Enforcement mode so we need to c
 # semanage fcontext -a -t httpd_log_t "/opt/website1/logs(/.*)?"
 # semanage fcontext -a -t httpd_config_t "/opt/conf(/.*)?"
 # restorecon -R -v /opt/
+```
+
+Go back to a normal user
+```bash
 # exit
+```
+
+and create a simple HTML file that we should get once we enter the page
+```bash
+$ echo '<html>
+<head>
+<title>This is a simple SSL Test</title>
+</head>
+<body>
+<p1>Simple SSL Test</p1>
+</body>
+</html>' > /opt/website1/html/index.html
 ```
 
 Now let's create our virtual host with a reference to the SSL certificate's files:
@@ -378,9 +377,21 @@ $ echo "<VirtualHost tls-test-${UUID}.example.local:443>
 </VirtualHost>" > /opt/conf/tls-test.conf
 ```
 
+Let's go back to our workstation server
+```bash
+$ exit
+```
+
+And Copy the SSL file to the relevant directory
+```bash
+$ scp ${TLS_BASE}/Certs/tls-test.crt ec2-user@servera:/opt/website1/ssl/
+$ scp ${TLS_BASE}/Keys/tls-test.key ec2-user@servera:/opt/website1/ssl/
+$ scp ${TLS_BASE}/CA/ca.crt ec2-user@servera:/opt/website1/ssl/
+```
+
 Now Restart/Start the service
 ```bash
-$ sudo systemctl enable --now httpd
+$ ssh ec2-user@servera "sudo systemctl enable --now httpd"
 ```
 
 Add the CA to our system directory :
@@ -391,7 +402,10 @@ $ sudo cp ${TLS_BASE}/CA/ca.crt /etc/pki/ca-trust/source/anchors/custom-ca.crt
 $ sudo update-ca-trust extract
 ```
 
-We can noe test the certificate with curl
+**NOTE**
+Make sure you can resolve the site before you test it !!!
+
+We can now test the certificate with curl
 ```bash
 $ curl https://tls-test-${UUID}.example.local/
 ```
@@ -415,3 +429,4 @@ $ echo quit | openssl s_client -showcerts -servername tls-test-${UUID}.example.l
 
 #### Good work !!!\\
 You can now continue to configure MTLS
+

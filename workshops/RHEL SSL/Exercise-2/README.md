@@ -83,7 +83,24 @@ $ openssl x509 -in Certs/long-cert.crt -text -noout | less
 
 In both test cases you should see the 2 DNS alter names.
 
-Let's create a new VirtualHost with out new certificate :
+Copy the new Certificate to servera
+```bash
+$ scp Certs/long-cert.crt  ec2-user@servera:/opt/website1/ssl/
+```
+
+Now let's login back to servera and setup a new virtual domain 
+
+```bash
+$ ssh ec2-user@servera
+```
+
+Export the Domain variables once again :
+```bash
+$ export DOMAIN="${UUID}-very-long.apps.my-httpd-${UUID}.${UUID}.somedomain.letmethink.about.it"
+$ export SHORT_NAME="tls-test"
+```
+
+Now Let's create a new VirtualHost with out new certificate :
 ```bash
 $ echo "<VirtualHost ${SHORT_NAME}.${DOMAIN}:443>
     SSLEngine on
@@ -102,15 +119,10 @@ $ echo "<VirtualHost ${SHORT_NAME}.${DOMAIN}:443>
 </VirtualHost>" > /opt/conf/tls-long.conf
 ```
 
-Now copy the certificate to the configured path :
-```bash
-$  cp ${TLS_BASE}/Certs/long-cert.crt /opt/website1/ssl/
-```
-
 As before , we need to update our /etc/hosts file with the FQDN (Fully qualified Domain Name)
 ```bash
 $ export IP_ADDR=$(ip addr show | grep 'inet ' | grep eth0 | awk '{print $2}' | awk -F \/ '{print $1}')
-$ echo "${IP_ADDR}     ${SHORT_NAME}.${DOMAIN} ${SHORT_NAME}" | sudo tee -a /etc/hosts   
+$ echo "${IP_ADDR}     ${SHORT_NAME}.${DOMAIN} ${SHORT_NAME}" | sudo tee -a /etc/hosts
 ```
 
 Restart the httpd service with the added configuration : 
@@ -118,10 +130,17 @@ Restart the httpd service with the added configuration :
 $ sudo systemctl reload httpd
 ```
 
+Go back to your workstation
+```bash
+$ exit
+```
+
+**NOTE**
+Make sure you have a name resolution for the FQDN !!!
+
 Now let's run the curl just like in the previous exercise :
 ```bash
 $ curl https://${SHORT_NAME}.${DOMAIN} ; echo
-
 ```
 
 Great Job So far !!!
@@ -131,7 +150,7 @@ If we want to see the server certificate (and CA in some cases) we can use opens
 Run the following command :
 
 ```bash
-$  echo quit | openssl s_client -showcerts -servername ${SHORT_NAME}.${DOMAIN} -connect ${SHORT_NAME}.${DOMAIN}:443
+$  echo quit | openssl s_client -showcerts -servername ${SHORT_NAME}.${DOMAIN} -connect ${SHORT_NAME}.${DOMAIN}:443 | less
 ```
 
 As you can see we have obtain (In clear text) both the Sever and the CA certificates.
@@ -200,6 +219,11 @@ Now that we have everything in place we can Set up our website to enable MTLS.
 
 We will update our website from Exercise 1 So it will only expect request which are using the Client Certificate.\\
 \\
+Login to servera
+```bash
+$ ssh ec2-user@servera
+```
+
 Before we change the configuration file we need to set the ALLOWED_USER variable
 Base on the Client Certificate set the variable:
 ```bash
@@ -232,63 +256,23 @@ $ echo "<VirtualHost tls-test-${UUID}.example.local:443>
     </Location>
 </VirtualHost>" > /opt/conf/tls-test.conf
 ```
-And generate a new certificate for our httpd website 
+And restart the httpd service :
+```bash
+$ sudo systemctl reload httpd
+``` 
 
+Now exit and go back to the workstation :
+```bash
+$ exit
+```
+
+### Test the MTLS
+
+export the following variables:
 ```bash
 $ export DOMAIN="example.local"
 $ export SHORT_NAME="tls-test-${UUID}"
 ```
-
-Here is how the Answer file should look like :
-```bash
-$ cat > Afile/tls-test_csr.txt << EOF
-[req]
-default_bits = 2048
-prompt = no
-default_md = sha256
-x509_extensions = req_ext
-req_extensions = req_ext
-distinguished_name = dn
-
-[ dn ]
-C=IL
-ST=Center
-L=TLV
-O=BNHP
-OU=IT
-emailAddress=${USER}@localhost
-CN = ${SHORT_NAME}
-
-[ req_ext ]
-nsCertType = server
-nsComment="The long-cert certificate for MTLS"
-subjectAltName = @alt_names
-keyUsage=digitalSignature
-extendedKeyUsage=serverAuth
-basicConstraints=CA:FALSE
-subjectKeyIdentifier=hash
-
-[ alt_names ]
-DNS.1 = ${SHORT_NAME}
-DNS.2 = ${SHORT_NAME}.${DOMAIN}
-EOF
-```
-
-Let's create the CSR :
-```bash
-$ openssl req -new -key Keys/tls-test.key -out CSR/tls-test.csr -config <( cat Afile/tls-test_csr.txt )
-```
-
-Now go ahead and sign the certificate :
-```bash
-$ openssl x509 -req -in CSR/tls-test.csr -CA CA/ca.crt -CAkey Keys/ca.key \
-  -CAcreateserial -out Certs/tls-test.crt -days 730 -extensions 'req_ext' \
-  -extfile <(cat Afile/tls-test_csr.txt)
-```
-
-Before we start the testing reload the httpd service
-
-### Test the MTLS
 
 We will use curl to run a test on our MTLS configuration
 
@@ -327,5 +311,10 @@ As noted before We can use openssl as our TLS client and retrieve the public cer
 
 and run the following command :
 ```bash
-$  echo quit | openssl s_client -showcerts -servername ${SHORT_NAME}.${DOMAIN} -connect ${SHORT_NAME}.${DOMAIN}:443
+$  echo quit | openssl s_client -showcerts -servername ${SHORT_NAME}.${DOMAIN} -connect ${SHORT_NAME}.${DOMAIN}:443 | less
 ```
+
+Now That we have MTLS set up and running we have successfully completed The Exercise 
+
+#### Good work !!!\\
+You can now continue to configure MTLS

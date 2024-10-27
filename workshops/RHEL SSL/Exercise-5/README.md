@@ -1,4 +1,4 @@
-# Kubeconfig & SSL Troubleshooting
+# SSL Troubleshooting
 
 This part is one of the must interesting and annoying thinks about SSL/TLS.  
 The Art of troubleshooting SSL certificates.
@@ -198,18 +198,33 @@ Io9tCCfumDBvpto3uohtYvcDk+Y4z4DLOQyyK06B94TB9zzsD7xfzuFesnph+FZE
 -----END CERTIFICATE-----
 ```
 
-Now delete and recreate the "monkey-app" route with those files:
+Copy the new certificate to the right location
 ```
-$ oc delete route monkey-app
-$ oc create route edge monkey-app --service=monkey-app \
-  --cert=cert2.crt --key=cert2.key \
-  --ca-cert=cert2-ca.crt --insecure-policy=Redirect \
-  --port=8080 
+$ cp cert2.crt cert2.key cert2-ca.crt /opt/website1/ssl  
+```
+
+Now modify the tls-test.conf with the following certificate file : 
+```bash
+$ echo "<VirtualHost tls-test-${UUID}.example.local:443>
+    SSLEngine on
+    SSLCertificateFile /opt/website1/ssl/cert2.crt
+    SSLCertificateKeyFile /opt/website1/ssl/cert2.key
+    SSLCACertificateFile /opt/website1/ssl/cert2-ca.crt
+    ServerName tls-test-${UUID}.example.local
+    DocumentRoot /opt/website1/html/
+    <Directory /opt/website1/html/>
+       DirectoryIndex index.html
+       Require all granted
+       Options Indexes   
+    </Directory>
+    ErrorLog /opt/website1/logs/error.log
+    CustomLog /opt/website1/logs/access.log combined
+</VirtualHost>" > /opt/conf/tls-test.conf
 ```
 
 Let's look at the route to see what wrong :
 ```bash
-$ oc describe route monkey-app
+$ curl https://tls-test-${UUID}.example.local/
 ```
 
 **HINT**
@@ -222,143 +237,7 @@ $ openssl rsa -noout -modulus -in cert2.key | openssl md5
 If the certificate came from the key it should match  
 
 **Open Task**
-Fix the certificate for the Monkey-app
+Fix the certificate for the tls-test app
 
-## Generate Kubeconfig
+## CA chain
 
-when logging to OpenShift we can run the authentication is several ways.
-1. (As you know) SSO with your AD account
-2. X509 certificate authentication
-
-
-In this part we will create a "Web Client Certificate" for our user
-
-First Let's create a key :
-```bash
-$ openssl genrsa -out kube.key 4096
-```
-
-Now let's one line the CSR request :
-```bash
-$ openssl req -new -key kube.key -out kube.csr -subj "/CN=${USER}/O=Authenticated Users" -addext "keyUsage=digitalSignature" -addext "basicConstraints=CA:FALSE" -addext "extendedKeyUsage=clientAuth"  -addext "subjectKeyIdentifier=hash"
-```
-
-Now we will ask OpenShift to sign it :
-```bash
-$ CERT_BASE64=$(cat kube.csr | base64 -w0)
-```
-
-Now let’s create the CR :
-
-```bash
-$ cat > kube-csr.yaml << EOF
-apiVersion: certificates.k8s.io/v1
-kind: CertificateSigningRequest
-metadata:
-  name: ${USER}-crt
-spec:
-  request: ${CERT_BASE64}
-  signerName: kubernetes.io/kube-apiserver-client
-  expirationSeconds: 7776000 # three months
-  usages:
-  - client auth
-EOF
-```
-
-Apply the CR :
-```bash
-$ oc apply -f kube-csr.yaml
-```
-
-we can now view the certificate request (if we have the right permissions by running the “oc get csr” command :
-
-```bash
-$ oc get csr
-NAME      AGE   SIGNERNAME                            REQUESTOR      CONDITION
-my-cert   17s   kubernetes.io/kube-apiserver-client   system:admin   Pending
-```
-
-As we can see the certificate status is “Pending” which is waiting for the admin (or user with the right permission) to approve the certificate.
-
-Let’s go ahead and approve the certificate :
-
-```bash
-$ oc adm certificate approve ${USER}-crt
-certificatesigningrequest.certificates.k8s.io/my-cert approved
-```
-
-Now, if we look at the CSR request we are going to see the certificates again but the state has changed :
-
-```bash
-$ oc get csr
-NAME      AGE     SIGNERNAME                            REQUESTOR      CONDITION
-my-cert   2m51s   kubernetes.io/kube-apiserver-client   system:admin   Approved,Issued
-```
-
-Now that our certificate has been generated we can go ahead and extract it. sense the certificate is been saved as base64 we will need to decode the output
-
-```bash
-$ oc get csr ${USER}-crt -o jsonpath='{.status.certificate}' | base64 -d > kube.crt
-```
-
-you can copy the OpenShift CA from /usr/share/ca-certs/
-```bash
-$ cp /usr/share/ca-certs/ocp-api.crt .
-```
-
-Now use the following skeleton to build your kubeconfig file (create a file named kubeconfig.${USER}:
-```YAML
-apiVersion: v1
-clusters:
-- cluster:
-    certificate-authority-data: BASE64_CA
-    server: SERVER_API
-  name: OpenShift
-contexts:
-- context:
-    cluster: OpenShift
-    namespace: $USER-project
-    user: ${USER}
-  name: $USER-project/OpenShift/${USER}
-current-context: $USER-project/OpenShift/${USER}
-kind: Config
-preferences: {}
-users:
-- name: ${USER}
-  user:
-    client-certificate-data: BASE64_CRT
-    client-key-data: BASE64_KEY
-```
-
-Replace the content of the file as follow :
-```bash
-$ export BASE64_CA=$(cat  ocp-api.crt | base64 -w0)
-$ export BASE64_CRT=$(cat  kube.crt | base64 -w0)
-$ export BASE64_KEY=$(cat  kube.key | base64 -w0)
-$ export SERVER_API=$(oc whoami --show-server)
-```
-Now use sed to replace the place holders
-```bash
-$ sed -i "s/BASE64_CA/${BASE64_CA}/g" kubeconfig.${USER}
-$ sed -i "s/BASE64_CRT/${BASE64_CRT}/g" kubeconfig.${USER}
-$ sed -i "s/BASE64_KEY/${BASE64_KEY}/g" kubeconfig.${USER}
-$ sed -i "s/SERVER_API/${SERVER_API}/g" kubeconfig.${USER}
-``` 
-
-log out from OpenShift
-```
-$ oc logout
-```
-
-Now Set the environment variable KUBECONFIG to point to it :
-```bash
-$ export KUBECONFIG="$(pwd)/kubeconfig.${USER}"
-```
-
-Run the oc command to see you are connected but with X509 instead of user/pass method :
-```bash
-$ oc whoami
-```
-
-That Is it 
-(you have completed the exercise!!!)

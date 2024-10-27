@@ -20,7 +20,7 @@ for those of you who don't know tmux in a very powerful tool which allows us to 
 
 ##### Install tmux
 ```bash
-$ sudo dnf install -y tmux
+$ sudo dnf install -y tmux net-tools
 ```
 
 To make it easier to work with tmux you can create the following ".tmux.conf" file :

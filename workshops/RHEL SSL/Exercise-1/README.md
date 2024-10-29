@@ -427,6 +427,11 @@ Now to view our certificate with openssl run the following command :
 $ echo quit | openssl s_client -showcerts -servername tls-test-${UUID}.example.local -connect tls-test-${UUID}.example.local:443
 ```
 
+Before moving on Let's save the UUID in the bashrc file 
+```bash
+$ history | grep export | grep UUID | grep -v grep | awk '{print $2 " " $3}' | tee -a  ~/.bashrc
+```
+
 #### Good work !!!\\
 You can now continue to configure MTLS
 

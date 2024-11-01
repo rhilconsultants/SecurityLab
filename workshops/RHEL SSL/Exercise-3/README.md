@@ -121,8 +121,9 @@ $ sudo restorecon -R -v /opt/
 
 And add the following configuration to our HTTP server :
 ```bash
-$ echo "<VirtualHost notls-test-${UUID}.example.local:80>
+$ echo "<VirtualHost 192.168.200.11:80>
     ServerName notls-test-${UUID}.example.local
+    ServerAlias 192.168.200.11
     DocumentRoot /opt/website2/html/
     <Directory /opt/website2/html/>
        DirectoryIndex index.html
@@ -307,6 +308,21 @@ $ curl --cacert CA/ca-crt.pem https://notls-test-${UUID}.example.local/
 
 NOW go back to servera and change the index.html file to say "Simple HAproxy SSL test"
 
+
+Now try to run it with the IP address :
+```
+$ curl --cacert CA/ca-crt.pem https://192.168.200.11/
+<html>
+<head>
+<title>This is a simple no SSL Test</title>
+</head>
+<body>
+<p1>Simple HAproxy SSL test</p1>
+</body>
+</html>
+```
+
+Why is it working ???
 
 For best practice it is recommended to Install the haproxy on the webserver host to make sure no one could "sniff" the traffic between the 2 servers.
 

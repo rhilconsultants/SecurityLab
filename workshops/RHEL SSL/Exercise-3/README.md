@@ -93,18 +93,44 @@ Make sure we can resolve the FQDN locally
 $ echo "192.168.200.11  notls-test-${UUID}.example.local notls-test-${UUID}" | sudo tee -a /etc/hosts
 ```
 
+Making a new directory for the new website
+```bash
+$ sudo mkdir /opt/website2
+$ sudo mkdir /opt/website2/{html,logs}
+$ sudo setfacl -R -m user:ec2-user:rwx /opt/website2
+```
+
+Now let's create a new Hello file :
+```bash
+$ echo '<html>
+<head>
+<title>This is a simple no SSL Test</title>
+</head>
+<body>
+<p1>Simple None SSL Test</p1>
+</body>
+</html>' > /opt/website2/html/index.html
+```
+
+Make sure SElinux is set 
+```bash
+$ sudo semanage fcontext -a -t httpd_sys_content_t "/opt/website2(/.*)?"
+$ sudo semanage fcontext -a -t httpd_log_t "/opt/website2/logs(/.*)?"
+$ sudo restorecon -R -v /opt/
+```
+
 And add the following configuration to our HTTP server :
 ```bash
-echo "<VirtualHost notls-test-${UUID}.example.local:80>
+$ echo "<VirtualHost notls-test-${UUID}.example.local:80>
     ServerName notls-test-${UUID}.example.local
-    DocumentRoot /opt/website1/html/
-    <Directory /opt/website1/html/>
+    DocumentRoot /opt/website2/html/
+    <Directory /opt/website2/html/>
        DirectoryIndex index.html
        Require all granted
        Options Indexes   
     </Directory>
-    ErrorLog /opt/website1/logs/error.log
-    CustomLog /opt/website1/logs/access.log combined
+    ErrorLog /opt/website2/logs/error.log
+    CustomLog /opt/website2/logs/access.log combined
 </VirtualHost>" > /opt/conf/notls-test.conf
 ```
 
@@ -136,7 +162,7 @@ In regards to SElinux we can use the auditd logs to create an SElinux module and
 
 ##### Procedure
 
-1. Login in to servera
+1. Login in to serverb
  
 ```bash
 $ ssh ec2-user@serverb
@@ -252,6 +278,7 @@ Now Let's set the SElinux with audit2allow command :
 ```bash
 # grep haproxy /var/log/audit/audit.log | audit2allow -M my_haproxy
 # semodule -i my_haproxy
+# setenforce 1
 ```
 
 Go back to our workstation and modify the IP address of the notls-test website from servera to serverb :
@@ -267,16 +294,19 @@ $ sudo sed -i  's/11  notls-test/12  notls-test/' /etc/hosts
 
 and run the final test :
 ```bash
-$ curl --cacert CA/ca-crt.pem https://notls-test-4qrbh.example.local/
+$ curl --cacert CA/ca-crt.pem https://notls-test-${UUID}.example.local/
 <html>
 <head>
-<title>This is a simple SSL Test</title>
+<title>This is a simple no SSL Test</title>
 </head>
 <body>
-<p1>Simple SSL Test</p1>
+<p1>Simple None SSL Test</p1>
 </body>
 </html>
 ```
+
+NOW go back to servera and change the index.html file to say "Simple HAproxy SSL test"
+
 
 For best practice it is recommended to Install the haproxy on the webserver host to make sure no one could "sniff" the traffic between the 2 servers.
 

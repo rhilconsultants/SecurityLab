@@ -258,7 +258,8 @@ frontend  tls-frontend
     use_backend %[req.hdr(Host),lower]
 ```
 
-6. **BackEnd for our websites**\\
+6. **BackEnd for our websites**
+
 For our BackEnd we will need to set the BackEnd name as the URL we want to redirect to :
 ```bash
 # cat >> /etc/haproxy/haproxy.cfg << EOF
@@ -268,7 +269,8 @@ backend notls-test-${UUID}.example.local
 EOF
 ```
 
-7. Start the HAproxy and setup the SElinux\\
+7. Start the HAproxy and setup the SElinux
+
 First start the HAproxy
 ```bash
 # systemctl start haproxy

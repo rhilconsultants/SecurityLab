@@ -283,7 +283,7 @@ Now Let's set the SElinux with audit2allow command :
 # setenforce 1
 ```
 
-**NOTE**
+**NOTE**\
 IF there is no putput from the audit2allow command it means there is no need to modify any SElinux rule.
 
 8. Go back to our workstation and modify the IP address of the notls-test website from servera to serverb :

@@ -147,7 +147,7 @@ $ echo "192.168.200.11  notls-test-${UUID}.example.local notls-test-${UUID}" | s
 
 Now we need to test the website before we continue :
 ```bash
-$ curl http://notls-test-4qrbh.example.local/
+$ curl http://notls-test-${UUID}.example.local/
 ```
 
 Now that we have an insecure website , let's make it secure with HAproxy as a frontend

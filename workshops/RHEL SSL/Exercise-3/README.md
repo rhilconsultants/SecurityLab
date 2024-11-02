@@ -121,9 +121,8 @@ $ sudo restorecon -R -v /opt/
 
 And add the following configuration to our HTTP server :
 ```bash
-$ echo "<VirtualHost 192.168.200.11:80>
+$ echo "<VirtualHost notls-test-${UUID}.example.local:80>
     ServerName notls-test-${UUID}.example.local
-    ServerAlias 192.168.200.11
     DocumentRoot /opt/website2/html/
     <Directory /opt/website2/html/>
        DirectoryIndex index.html
@@ -161,7 +160,7 @@ In regards to SElinux we can use the auditd logs to create an SElinux module and
 ##### Prerequisites
 - The AppStream repository is enabled. 
 
-##### Procedure
+### Procedure
 
 1. Login in to serverb
  
@@ -282,13 +281,16 @@ Now Let's set the SElinux with audit2allow command :
 # setenforce 1
 ```
 
-Go back to our workstation and modify the IP address of the notls-test website from servera to serverb :
+**NOTE**
+IF there is no putput from the audit2allow command it means there is no need to modify any SElinux rule.
+
+8. Go back to our workstation and modify the IP address of the notls-test website from servera to serverb :
 ```bash
 # exit
 $ exit
 ```
 
-Now change the IP address:
+On the workstation , go ahead and change the website IP address to point the serverb:
 ```bash
 $ sudo sed -i  's/11  notls-test/12  notls-test/' /etc/hosts
 ```
@@ -306,25 +308,14 @@ $ curl --cacert CA/ca-crt.pem https://notls-test-${UUID}.example.local/
 </html>
 ```
 
-NOW go back to servera and change the index.html file to say "Simple HAproxy SSL test"
+## On your own
+
+1. modify the workstation system with the new CA
+2. On servera change the index.html file to say "Simple HAproxy SSL test"
+3. Modify the haproxy.conf on serverb to redirect to the website on IP address URL request
 
 
-Now try to run it with the IP address :
-```
-$ curl --cacert CA/ca-crt.pem https://192.168.200.11/
-<html>
-<head>
-<title>This is a simple no SSL Test</title>
-</head>
-<body>
-<p1>Simple HAproxy SSL test</p1>
-</body>
-</html>
-```
+In a real world scenario we will Install the haproxy on the webserver host to make sure no one could "sniff" the traffic between the 2 servers.
 
-Why is it working ???
-
-For best practice it is recommended to Install the haproxy on the webserver host to make sure no one could "sniff" the traffic between the 2 servers.
-
-### Good Work
+## Good Work
 You have completed your Exercise !!!

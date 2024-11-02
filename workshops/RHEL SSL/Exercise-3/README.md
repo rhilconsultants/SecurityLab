@@ -147,7 +147,7 @@ $ echo "192.168.200.11  notls-test-${UUID}.example.local notls-test-${UUID}" | s
 
 Now we need to test the website before we continue :
 ```bash
-$ curl http://notls-test-4qrbh.example.local/
+$ curl http://notls-test-${UUID}.example.local/
 ```
 
 Now that we have an insecure website , let's make it secure with HAproxy as a frontend
@@ -237,20 +237,20 @@ EOF
 ```
 
 
-5. FrontEnd with ACL
+5. FrontEnd with ACL\
 In our case we are using HAproxy for multiple websites (hence the wildcard certificate) we need to set the HAproxy with an ACL to redirect each website to the right URL.
 
 We first need to create a directory to hold the certificate and then create a certificate which is a combination of the certificate and key
 ```bash
 # mkdir /etc/haproxy/certs.d/
-# cat /home/ec2-user/serverb.crt /home/ec2-user/ca-crt.pem /home/ec2-user/serverb-key.pem > /etc/haproxy/certs.d/wildcard.example.com.crt
+# cat /home/ec2-user/serverb.crt /home/ec2-user/ca-crt.pem /home/ec2-user/serverb-key.pem > /etc/haproxy/certs.d/wildcard.example.local.crt
 ```
 
-Now with your favorite editor add the following part : \\
+Now with your favorite editor add the following part : \
 Our FrontEnd should look as follow :
 ```
 frontend  tls-frontend
-    bind *:443 ssl crt /etc/haproxy/certs.d/wildcard.example.com.crt no-sslv3 
+    bind *:443 ssl crt /etc/haproxy/certs.d/wildcard.example.local.crt no-sslv3 
     mode http
     option httplog    
     option http-server-close
@@ -258,7 +258,8 @@ frontend  tls-frontend
     use_backend %[req.hdr(Host),lower]
 ```
 
-6. BackEnd for our websites
+6. **BackEnd for our websites**
+
 For our BackEnd we will need to set the BackEnd name as the URL we want to redirect to :
 ```bash
 # cat >> /etc/haproxy/haproxy.cfg << EOF
@@ -268,7 +269,8 @@ backend notls-test-${UUID}.example.local
 EOF
 ```
 
-7. Start the HAproxy and setup the SElinux\\
+7. Start the HAproxy and setup the SElinux
+
 First start the HAproxy
 ```bash
 # systemctl start haproxy
@@ -281,7 +283,7 @@ Now Let's set the SElinux with audit2allow command :
 # setenforce 1
 ```
 
-**NOTE**
+**NOTE**\
 IF there is no putput from the audit2allow command it means there is no need to modify any SElinux rule.
 
 8. Go back to our workstation and modify the IP address of the notls-test website from servera to serverb :

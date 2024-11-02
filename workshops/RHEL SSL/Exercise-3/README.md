@@ -237,7 +237,7 @@ EOF
 ```
 
 
-5. FrontEnd with ACL
+5. FrontEnd with ACL\
 In our case we are using HAproxy for multiple websites (hence the wildcard certificate) we need to set the HAproxy with an ACL to redirect each website to the right URL.
 
 We first need to create a directory to hold the certificate and then create a certificate which is a combination of the certificate and key
@@ -246,7 +246,7 @@ We first need to create a directory to hold the certificate and then create a ce
 # cat /home/ec2-user/serverb.crt /home/ec2-user/ca-crt.pem /home/ec2-user/serverb-key.pem > /etc/haproxy/certs.d/wildcard.example.com.crt
 ```
 
-Now with your favorite editor add the following part : \\
+Now with your favorite editor add the following part : \
 Our FrontEnd should look as follow :
 ```
 frontend  tls-frontend

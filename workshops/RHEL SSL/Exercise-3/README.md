@@ -243,14 +243,14 @@ In our case we are using HAproxy for multiple websites (hence the wildcard certi
 We first need to create a directory to hold the certificate and then create a certificate which is a combination of the certificate and key
 ```bash
 # mkdir /etc/haproxy/certs.d/
-# cat /home/ec2-user/serverb.crt /home/ec2-user/ca-crt.pem /home/ec2-user/serverb-key.pem > /etc/haproxy/certs.d/wildcard.example.com.crt
+# cat /home/ec2-user/serverb.crt /home/ec2-user/ca-crt.pem /home/ec2-user/serverb-key.pem > /etc/haproxy/certs.d/wildcard.example.local.crt
 ```
 
 Now with your favorite editor add the following part : \
 Our FrontEnd should look as follow :
 ```
 frontend  tls-frontend
-    bind *:443 ssl crt /etc/haproxy/certs.d/wildcard.example.com.crt no-sslv3 
+    bind *:443 ssl crt /etc/haproxy/certs.d/wildcard.example.local.crt no-sslv3 
     mode http
     option httplog    
     option http-server-close
